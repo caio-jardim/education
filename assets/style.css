@@ -1,0 +1,193 @@
+/* ==========================================================================
+   1. IMPORTAÇÃO E GERAL
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+    color: #1A1A1A;
+}
+
+/* ==========================================================================
+   2. CORREÇÃO DE ESTRUTURA (HEADER E SIDEBAR)
+   ========================================================================== */
+header[data-testid="stHeader"] {
+    display: none !important;
+    height: 0px !important;
+    visibility: hidden !important;
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 1rem !important;
+}
+
+[data-testid="stSidebar"] img {
+    margin-top: 0px !important;
+    margin-bottom: 20px !important;
+}
+
+[data-testid="stSidebarCollapseButton"], 
+div[data-testid="collapsedControl"] {
+    display: none !important;
+}
+
+/* ==========================================================================
+   3. FORMULÁRIOS: O GRANDE FIX (INPUTS BRANCOS)
+   ========================================================================== */
+
+/* Labels (Títulos dos campos) */
+label[data-testid="stLabel"], label {
+    color: #1A1A1A !important;
+    font-weight: 600 !important;
+}
+
+/* --- BLOCO UNIFICADO DE FUNDO BRANCO --- */
+/* Isso pega: Texto, Número, Data, Selectbox, Multiselect e Área de Texto */
+
+div[data-baseweb="input"],          /* Container de Text Input simples */
+div[data-baseweb="base-input"],     /* Container base do Webkit */
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div, /* Selectbox fechado */
+div[data-testid="stMultiSelect"] div[data-baseweb="select"] > div, /* Multiselect fechado */
+div[data-testid="stNumberInput"] div[data-baseweb="input"], /* Number Input */
+textarea { 
+    background-color: #FFFFFF !important;
+    border: 1px solid #D1D1D1 !important;
+    border-radius: 6px !important;
+    color: #1A1A1A !important;
+}
+
+/* Força a cor do TEXTO digitado para PRETO em todos os lugares */
+input, 
+textarea, 
+div[data-baseweb="select"] div {
+    color: #1A1A1A !important;
+}
+
+/* Ícone da Seta (Chevron) dos Selects */
+div[data-baseweb="select"] svg {
+    fill: #1A1A1A !important;
+}
+
+/* ==========================================================================
+   4. KPI CARDS
+   ========================================================================== */
+.kpi-card {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-top: 4px solid #C5A065;
+    text-align: left;
+    height: 100%;
+    position: relative;
+}
+
+.kpi-title {
+    color: #757575;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    color: #1A1A1A;
+    font-size: 28px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+}
+
+.kpi-icon-img {
+    float: right;
+    width: 32px;
+    height: 32px;
+    opacity: 0.9;
+}
+
+/* ==========================================================================
+   5. TABELAS
+   ========================================================================== */
+[data-testid="stDataFrame"] {
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    background-color: #FFFFFF;
+}
+
+/* ==========================================================================
+   6. DETALHES EXTRAS (POPUPS, BOTOES NUMEROS, TAGS)
+   ========================================================================== */
+
+/* Botões + e - do Number Input */
+div[data-testid="stNumberInput"] button {
+    background-color: #FFFFFF !important;
+    color: #1A1A1A !important;
+    border-color: #D1D1D1 !important;
+}
+div[data-testid="stNumberInput"] button:hover {
+    color: #C5A065 !important;
+    border-color: #C5A065 !important;
+    background-color: #FAFAFA !important;
+}
+
+/* MENUS DROPDOWN (Lista flutuante) */
+div[data-baseweb="popover"], 
+div[data-baseweb="menu"],
+ul[data-baseweb="menu"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E0E0E0 !important;
+}
+
+/* Itens da lista */
+li[data-baseweb="option"] {
+    color: #1A1A1A !important;
+    background-color: #FFFFFF !important;
+}
+
+/* Hover na lista */
+li[data-baseweb="option"]:hover,
+li[data-baseweb="option"][aria-selected="true"] {
+    background-color: #F9F7F2 !important;
+    color: #C5A065 !important;
+    font-weight: 600 !important;
+}
+
+/* TAGS (Itens selecionados no Multiselect) */
+span[data-baseweb="tag"] {
+    background-color: #F0F0F0 !important;
+    border: 1px solid #D1D1D1 !important;
+}
+span[data-baseweb="tag"] span {
+    color: #1A1A1A !important;
+}
+/* O X de fechar a tag */
+span[data-baseweb="tag"] svg {
+    fill: #1A1A1A !important;
+}
+
+/* ==========================================================================
+   7. BOTÃO SAIR (ESPECÍFICO DA SIDEBAR)
+   ========================================================================== */
+
+/* Seleciona apenas os botões que estão DENTRO da Sidebar */
+[data-testid="stSidebar"] div.stButton > button {
+    color: #FFFFFF !important;              /* Texto Branco */
+    border: 1px solid #FFFFFF !important;   /* Borda Branca Fina */
+    background-color: transparent !important; /* Fundo Transparente */
+    transition: all 0.3s ease;
+}
+
+/* Efeito Hover (Quando passa o mouse) */
+[data-testid="stSidebar"] div.stButton > button:hover {
+    color: #C5A065 !important;              /* Texto fica Bege */
+    border-color: #C5A065 !important;       /* Borda fica Bege */
+    background-color: rgba(255, 255, 255, 0.05) !important; /* Fundo levemente claro */
+}
+
+/* Ajuste de foco para não ficar vermelho padrão */
+[data-testid="stSidebar"] div.stButton > button:active,
+[data-testid="stSidebar"] div.stButton > button:focus {
+    color: #C5A065 !important;
+    border-color: #C5A065 !important;
+    box-shadow: none !important;
+}
