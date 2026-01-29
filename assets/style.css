@@ -9,46 +9,84 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   2. CORREÇÃO DE ESTRUTURA (HEADER E SIDEBAR)
+   2. CORREÇÃO DE ESTRUTURA (VISUAL E LOGO)
    ========================================================================== */
+
+/* 1. HEADER (Visível e Transparente) */
 header[data-testid="stHeader"] {
-    display: none !important;
+    display: block !important;
+    visibility: visible !important;
+    background-color: transparent !important;
+    z-index: 999999 !important;
+}
+header[data-testid="stHeader"] > div:first-child {
+    background: transparent !important;
     height: 0px !important;
-    visibility: hidden !important;
 }
 
-section[data-testid="stSidebar"] > div {
-    padding-top: 1rem !important;
-}
-
-[data-testid="stSidebar"] img {
-    margin-top: 0px !important;
+/* 2. LOGO: POSIÇÃO E TAMANHO */
+[data-testid="stSidebar"] img[src*="logo"],
+[data-testid="stSidebar"] img[src*="png"] {
+    /* Sobe a logo */
+    margin-top: -80px !important; 
     margin-bottom: 20px !important;
+    padding-top: 0px !important;
+    
+    /* Tamanho da logo */
+    width: 260px !important;  
+    max-width: 90% !important;
+    height: auto !important;
+    object-fit: contain !important;
 }
 
+/* 3. LIMITES DA PÁGINA */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 0rem !important;
+    margin-top: 0px !important;
+}
+
+/* 4. SIDEBAR (Limites) */
+section[data-testid="stSidebar"] > div {
+    padding-top: 0rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* 5. COMPACTAÇÃO DO MENU */
+div[data-testid="stSidebarNav"] li {
+    margin-bottom: -5px !important; 
+}
+div[data-testid="stSidebarNav"] {
+    padding-top: 0px !important;
+}
+
+/* 6. BOTÕES DE CONTROLE (Setinha/Menu) */
 [data-testid="stSidebarCollapseButton"], 
-div[data-testid="collapsedControl"] {
-    display: none !important;
+[data-testid="stHeader"] button {
+    display: block !important;
+    color: #C5A065 !important;
+    border: none !important;
+}
+[data-testid="stSidebarCollapseButton"] svg,
+[data-testid="stHeader"] button svg {
+    fill: #C5A065 !important;
+    stroke: #C5A065 !important;
 }
 
 /* ==========================================================================
    3. FORMULÁRIOS: O GRANDE FIX (INPUTS BRANCOS)
    ========================================================================== */
-
-/* Labels (Títulos dos campos) */
 label[data-testid="stLabel"], label {
     color: #1A1A1A !important;
     font-weight: 600 !important;
 }
 
-/* --- BLOCO UNIFICADO DE FUNDO BRANCO --- */
-/* Isso pega: Texto, Número, Data, Selectbox, Multiselect e Área de Texto */
-
-div[data-baseweb="input"],          /* Container de Text Input simples */
-div[data-baseweb="base-input"],     /* Container base do Webkit */
-div[data-testid="stSelectbox"] div[data-baseweb="select"] > div, /* Selectbox fechado */
-div[data-testid="stMultiSelect"] div[data-baseweb="select"] > div, /* Multiselect fechado */
-div[data-testid="stNumberInput"] div[data-baseweb="input"], /* Number Input */
+/* Inputs, Selects, Textareas - TUDO BRANCO */
+div[data-baseweb="input"],          
+div[data-baseweb="base-input"],     
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div, 
+div[data-testid="stMultiSelect"] div[data-baseweb="select"] > div, 
+div[data-testid="stNumberInput"] div[data-baseweb="input"], 
 textarea { 
     background-color: #FFFFFF !important;
     border: 1px solid #D1D1D1 !important;
@@ -56,14 +94,10 @@ textarea {
     color: #1A1A1A !important;
 }
 
-/* Força a cor do TEXTO digitado para PRETO em todos os lugares */
-input, 
-textarea, 
-div[data-baseweb="select"] div {
+input, textarea, div[data-baseweb="select"] div {
     color: #1A1A1A !important;
 }
 
-/* Ícone da Seta (Chevron) dos Selects */
 div[data-baseweb="select"] svg {
     fill: #1A1A1A !important;
 }
@@ -81,28 +115,14 @@ div[data-baseweb="select"] svg {
     height: 100%;
     position: relative;
 }
-
 .kpi-title {
-    color: #757575;
-    font-size: 13px;
-    font-family: 'Inter', sans-serif;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 8px;
+    color: #757575; font-size: 13px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;
 }
-
 .kpi-value {
-    color: #1A1A1A;
-    font-size: 28px;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 700;
+    color: #1A1A1A; font-size: 28px; font-weight: 700; font-family: 'Poppins', sans-serif;
 }
-
 .kpi-icon-img {
-    float: right;
-    width: 32px;
-    height: 32px;
-    opacity: 0.9;
+    float: right; width: 32px; height: 32px; opacity: 0.9;
 }
 
 /* ==========================================================================
@@ -117,8 +137,7 @@ div[data-baseweb="select"] svg {
 /* ==========================================================================
    6. DETALHES EXTRAS (POPUPS, BOTOES NUMEROS, TAGS)
    ========================================================================== */
-
-/* Botões + e - do Number Input */
+/* Botões +/- */
 div[data-testid="stNumberInput"] button {
     background-color: #FFFFFF !important;
     color: #1A1A1A !important;
@@ -130,64 +149,52 @@ div[data-testid="stNumberInput"] button:hover {
     background-color: #FAFAFA !important;
 }
 
-/* MENUS DROPDOWN (Lista flutuante) */
-div[data-baseweb="popover"], 
-div[data-baseweb="menu"],
-ul[data-baseweb="menu"] {
+/* Menus Dropdown */
+div[data-baseweb="popover"], div[data-baseweb="menu"], ul[data-baseweb="menu"] {
     background-color: #FFFFFF !important;
     border: 1px solid #E0E0E0 !important;
 }
-
-/* Itens da lista */
 li[data-baseweb="option"] {
-    color: #1A1A1A !important;
-    background-color: #FFFFFF !important;
+    color: #1A1A1A !important; background-color: #FFFFFF !important;
 }
-
-/* Hover na lista */
-li[data-baseweb="option"]:hover,
-li[data-baseweb="option"][aria-selected="true"] {
-    background-color: #F9F7F2 !important;
-    color: #C5A065 !important;
-    font-weight: 600 !important;
+li[data-baseweb="option"]:hover, li[data-baseweb="option"][aria-selected="true"] {
+    background-color: #F9F7F2 !important; color: #C5A065 !important; font-weight: 600 !important;
 }
-
-/* TAGS (Itens selecionados no Multiselect) */
+/* Tags */
 span[data-baseweb="tag"] {
-    background-color: #F0F0F0 !important;
-    border: 1px solid #D1D1D1 !important;
+    background-color: #F0F0F0 !important; border: 1px solid #D1D1D1 !important;
 }
-span[data-baseweb="tag"] span {
-    color: #1A1A1A !important;
-}
-/* O X de fechar a tag */
-span[data-baseweb="tag"] svg {
-    fill: #1A1A1A !important;
-}
-
+span[data-baseweb="tag"] span { color: #1A1A1A !important; }
+span[data-baseweb="tag"] svg { fill: #1A1A1A !important; }
 /* ==========================================================================
-   7. BOTÃO SAIR (ESPECÍFICO DA SIDEBAR)
+   7. RODAPÉ (LOGADO COMO + BOTÃO SAIR) - AJUSTE FINAL
    ========================================================================== */
 
-/* Seleciona apenas os botões que estão DENTRO da Sidebar */
+/* 1. O Bloco 'Logado Como' */
+/* Aumentei para -50px para subir bem mais */
+[data-testid="stSidebar"] .element-container:has(div[style*="background-color: #2C2C2C"]) {
+    margin-bottom: 0px !important;
+    margin-top: -50px !important;  /* <--- MEXA AQUI SE QUISER SUBIR MAIS */
+}
+
+/* 2. Botão "Sair" */
+/* Aumentei para -25px para acompanhar a subida do bloco de cima */
 [data-testid="stSidebar"] div.stButton > button {
-    color: #FFFFFF !important;              /* Texto Branco */
-    border: 1px solid #FFFFFF !important;   /* Borda Branca Fina */
-    background-color: transparent !important; /* Fundo Transparente */
-    transition: all 0.3s ease;
+    margin-top: -25px !important; /* <--- MEXA AQUI SE QUISER COLAR MAIS */
+    width: 100% !important;
+    color: #FFFFFF !important;
+    border: 1px solid #FFFFFF !important;
+    background-color: transparent !important;
 }
 
-/* Efeito Hover (Quando passa o mouse) */
+/* Hover no Botão Sair */
 [data-testid="stSidebar"] div.stButton > button:hover {
-    color: #C5A065 !important;              /* Texto fica Bege */
-    border-color: #C5A065 !important;       /* Borda fica Bege */
-    background-color: rgba(255, 255, 255, 0.05) !important; /* Fundo levemente claro */
-}
-
-/* Ajuste de foco para não ficar vermelho padrão */
-[data-testid="stSidebar"] div.stButton > button:active,
-[data-testid="stSidebar"] div.stButton > button:focus {
     color: #C5A065 !important;
     border-color: #C5A065 !important;
-    box-shadow: none !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Ajuste de fundo da sidebar para garantir que nada fique cortado */
+section[data-testid="stSidebar"] .block-container {
+    padding-bottom: 120px !important; 
 }

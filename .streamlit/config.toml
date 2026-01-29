@@ -1,4 +1,5 @@
 [theme]
+base = "light"
 primaryColor = "#C5A065"        # Bege Education (Foco dos inputs e seleções)
 backgroundColor = "#F9F7F2"     # Off-White (Fundo Geral)
 secondaryBackgroundColor = "#1A1A1A" # Preto Premium (Sidebar)

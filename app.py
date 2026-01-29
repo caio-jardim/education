@@ -46,8 +46,10 @@ else:
         if tipo_perfil == 'admin':
             selected = option_menu(
                 menu_title=None,
-                options=["Visão Geral", "Cadastros", "Vendas", "Financeiro", "Aulas"],
-                icons=["grid-fill", "person-badge", "tag-fill", "currency-dollar", "mortarboard"],
+                # --- MUDANÇA AQUI: Adicionado "Alunos" antes de Professores ---
+                options=["Visão Geral", "Cadastros", "Alunos", "Professores", "Vendas", "Financeiro", "Aulas"],
+                # --- MUDANÇA AQUI: Adicionado ícone "backpack" (mochila) para Alunos ---
+                icons=["grid-fill", "person-badge", "backpack", "people-fill", "tag-fill", "currency-dollar", "mortarboard"],
                 default_index=0,
                 styles={
                     "container": {"padding": "0!important", "background-color": "transparent"},
@@ -101,7 +103,7 @@ else:
     # Aqui passamos a variável 'selected' para as views saberem o que renderizar
     
     if tipo_perfil == 'admin':
-        # Você precisará atualizar seu admin.py para aceitar o argumento 'selected_page'
+        # Admin recebe a seleção (inclusive a nova "Alunos" e "Professores")
         admin_view.show_admin(usuario_atual, selected_page=selected)
         
     elif tipo_perfil in ['professor', 'prof']:

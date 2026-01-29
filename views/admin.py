@@ -4,7 +4,7 @@ import database as db
 from datetime import date # <--- NOVO IMPORT NECESSÁRIO
 
 # --- IMPORTAÇÃO DOS MÓDULOS DE UI ---
-from modules.ui import alunos, financeiro, professores, vendas 
+from modules.ui import alunos, financeiro, professores, vendas, aulas
 from modules.ui.core import kpi_card, header_page
 
 def show_admin(usuario, selected_page):
@@ -74,7 +74,7 @@ def show_admin(usuario, selected_page):
             st.divider()
             
             # --- GRÁFICOS ---
-            st.markdown("### 📈 Performance Recente")
+            st.markdown("### Performance Recente")
             if not df_financeiro.empty:
                 st.bar_chart(df_financeiro, x="Data", y="Valor", color="Tipo")
             else:
@@ -84,37 +84,46 @@ def show_admin(usuario, selected_page):
             st.error(f"Erro ao carregar dashboard: {e}")
 
     # 2. CADASTROS
+    # ... (dentro do if selected_page == "Cadastros":) ...
     elif selected_page == "Cadastros":
-        header_page("Cadastros", "Gerencie alunos e professores")
+        # Subtítulo simples, sem linha divisória embaixo
+        header_page("Cadastros")
         
-        tab1, tab2 = st.tabs(["🎓 Novo Aluno", "👨‍🏫 Novo Professor"])
+        # CSS LOCAL: Remove o espaço padrão entre o final do texto acima e o começo das abas
+        st.markdown("""
+            <style>
+                /* Remove margem inferior do header */
+                div[data-testid="stVerticalBlock"] > div:has(h2) { margin-bottom: -20px !important; }
+                /* Sobe as abas */
+                .stTabs { margin-top: -10px !important; }
+            </style>
+        """, unsafe_allow_html=True)
         
-        with tab1:
+        tab_aluno, tab_prof = st.tabs(["🎓 Novo Aluno", "👨‍🏫 Novo Professor"])
+        
+        with tab_aluno:
+            # Removemos o <br> daqui para colar o título na aba
             alunos.form_novo_aluno()
             
-        with tab2:
-            professores.form_novo_professor()
-
+        with tab_prof:
+            professores.form_novo_professor()            
     # 3. VENDAS
     elif selected_page == "Vendas":
-        header_page("Gestão de Vendas", "Renovação e venda de pacotes")
+        header_page("Gestão de Vendas")
         vendas.form_renovacao_pacote()
 
     # 4. FINANCEIRO
     elif selected_page == "Financeiro":
-        header_page("Financeiro", "Fluxo de caixa detalhado")
+        header_page("Financeiro")
         financeiro.show_financeiro()
 
     # 5. AULAS (HISTÓRICO)
     elif selected_page == "Aulas": 
-        header_page("Histórico de Aulas", "Registro geral da escola")
-        df_aulas = db.get_aulas()
-        
-        if not df_aulas.empty:
-            st.dataframe(
-                df_aulas, 
-                use_container_width=True,
-                hide_index=True
-            )
-        else:
-            st.info("Nenhuma aula registrada até o momento.")
+        # Chama a nova função bonita que criamos
+        aulas.show_gestao_aulas()
+    # 3. PROFESSORES (NOVO MÓDULO DE GESTÃO)
+    elif selected_page == "Professores":
+        # Chama a tela de GESTÃO DE VÍNCULOS
+        professores.show_gestao_vinculos()
+    elif selected_page == "Alunos":
+        alunos.show_gestao_vinculos()
