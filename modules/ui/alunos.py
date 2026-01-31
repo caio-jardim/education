@@ -3,6 +3,7 @@ import database as db
 from datetime import date
 import re
 from modules.ui import core
+import pandas as pd
 
 def form_novo_aluno():
     # --- CSS ESPECÍFICO DESTA TELA (LAYOUT APENAS) ---
@@ -141,67 +142,166 @@ def form_novo_aluno():
                     core.notify_error(f"Erro técnico: {e}")
 
 def show_gestao_vinculos():
-    st.markdown("### 🎓 Alunos & Professores")
-    
-    # CSS Toast
-    st.markdown("""<style>div[data-testid="stToastContainer"] {top: 80px; right: 20px; bottom: unset; left: unset; align-items: flex-end;}</style>""", unsafe_allow_html=True)
+    # --- GERENCIAMENTO DE ESTADO ---
+    if 'aluno_detalhe_id' not in st.session_state: st.session_state['aluno_detalhe_id'] = None
+    def ver_detalhes(id_aluno): st.session_state['aluno_detalhe_id'] = id_aluno
+    def voltar_lista(): st.session_state['aluno_detalhe_id'] = None
 
-    # 1. Carregar Dados
+    # --- CSS ---
+    st.markdown("""
+        <style>
+            div[data-testid="stVerticalBlock"] > div.stButton { text-align: right; }
+            .aluno-card-header { font-size: 18px; font-weight: 700; color: #1A1A1A; }
+            .aluno-card-sub { font-size: 14px; color: #666; }
+            .metric-label { font-size: 12px; color: #888; text-transform: uppercase; font-weight: 600; }
+            .metric-value { font-size: 16px; font-weight: 700; color: #1A1A1A; }
+            .stProgress > div > div > div > div { background-color: #C5A065; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- CARREGAMENTO ---
     df_alunos = db.get_alunos()
-    df_profs = db.get_professores()
-    df_links = db.get_vinculos()
     
-    # Filtra profs ativos
-    if not df_profs.empty and 'Status' in df_profs.columns:
-        df_profs = df_profs[df_profs['Status'] == 'Ativo']
+    # Busca dados do Dash
+    if hasattr(db, 'get_saldo_alunos'): df_dash = db.get_saldo_alunos()
+    else: df_dash = getattr(db, 'get_dash_alunos_data', lambda: pd.DataFrame())()
 
-    if df_alunos.empty or df_profs.empty:
-        st.warning("Necessário cadastrar alunos e professores antes.")
+    # --- MERGE (Usando String para não errar ID) ---
+    if not df_alunos.empty and not df_dash.empty:
+        # Garante que as chaves sejam strings nos dois lados
+        df_alunos['key'] = df_alunos['ID Aluno'].astype(str)
+        df_dash['key'] = df_dash['ID Aluno'].astype(str)
+        
+        # Cruzamento
+        df_alunos = df_alunos.merge(
+            df_dash[['key', 'Horas Compradas', 'Horas Consumidas', 'Saldo Disponível']], 
+            on='key', how='left'
+        )
+
+    if df_alunos.empty:
+        st.warning("Nenhum aluno encontrado.")
         return
 
-    # Mapeamentos
-    mapa_alunos = {row['Nome Aluno']: str(row['ID Aluno']) for _, row in df_alunos.iterrows()}
-    mapa_profs_nome_id = {row['Nome Professor']: str(row['ID Professor']) for _, row in df_profs.iterrows()}
-    mapa_profs_id_nome = {str(row['ID Professor']): row['Nome Professor'] for _, row in df_profs.iterrows()}
+    # --- ORDENAÇÃO INTERNA (Apenas para ordenar a lista, não exibe este valor) ---
+    col_saldo = 'Saldo Disponível' if 'Saldo Disponível' in df_alunos.columns else 'Saldo Horas'
+    if col_saldo in df_alunos.columns:
+        def safe_sort_val(v):
+            try: return float(str(v).replace(',', '.'))
+            except: return 99999.0
+        df_alunos['_ordem'] = df_alunos[col_saldo].apply(safe_sort_val)
+        df_alunos = df_alunos.sort_values(by='_ordem', ascending=True)
 
-    # Interface
-    col_sel, col_info = st.columns([1, 2])
-    
-    with col_sel:
-        nome_aluno_sel = st.selectbox("Selecione o Aluno", list(mapa_alunos.keys()))
-    
-    if nome_aluno_sel:
-        id_aluno_sel = mapa_alunos[nome_aluno_sel]
-        
-        # Descobre profs atuais desse aluno
-        profs_ja_vinculados = []
-        if not df_links.empty:
-            # Filtra por ID Aluno
-            links_aluno = df_links[df_links['ID Aluno'].astype(str) == id_aluno_sel]
-            ids_profs = links_aluno['ID Professor'].astype(str).tolist()
-            # Converte IDs para Nomes
-            profs_ja_vinculados = [mapa_profs_id_nome[uid] for uid in ids_profs if uid in mapa_profs_id_nome]
+    # --- MODO 1: LISTA ---
+    if st.session_state['aluno_detalhe_id'] is None:
+        st.markdown("### 🎓 Gestão de Alunos")
+        c_search, _ = st.columns([2, 1])
+        busca = c_search.text_input("🔍 Buscar aluno...", placeholder="Digite o nome")
+        st.write("")
+
+        df_display = df_alunos.copy()
+        if busca:
+            df_display = df_display[df_display['Nome Aluno'].astype(str).str.contains(busca, case=False, na=False)]
+
+        for _, row in df_display.iterrows():
+            id_aluno = row['ID Aluno']
+            nome = row['Nome Aluno']
+            serie = row.get('Série', '-')
             
-        with col_info:
+            # --- DADOS PUROS (EXATAMENTE COMO NO EXCEL) ---
+            # Se no excel está 4,5 -> Aqui fica "4,5"
+            # Se no excel está 4.5 -> Aqui fica 4.5
+            raw_total = row.get('Horas Compradas', '-')
+            raw_consumido = row.get('Horas Consumidas', '-')
+            raw_saldo = row.get('Saldo Disponível', '-')
+
+            # Pequeno ajuste apenas para não mostrar "nan" se estiver vazio
+            if pd.isna(raw_total): raw_total = "-"
+            if pd.isna(raw_consumido): raw_consumido = "-"
+            if pd.isna(raw_saldo) and 'Saldo Horas' in row: raw_saldo = row['Saldo Horas'] # Fallback
+            if pd.isna(raw_saldo): raw_saldo = "-"
+
+            # --- BARRA DE PROGRESSO (Cálculo isolado) ---
+            progresso = 0.0
+            try:
+                # Tenta converter APENAS para calcular a % da barra
+                # O texto exibido continua sendo o raw_total/raw_consumido
+                def to_f(x): return float(str(x).replace(',', '.'))
+                ptotal = to_f(raw_total)
+                pusado = to_f(raw_consumido)
+                if ptotal > 0: progresso = min(pusado / ptotal, 1.0)
+            except: 
+                progresso = 0.0 # Se der erro no calculo, barra fica zerada, mas texto aparece
+            
             with st.container(border=True):
-                st.markdown(f"**Professores de:** {nome_aluno_sel}")
+                c1, c2, c3 = st.columns([2, 2, 1])
+                with c1:
+                    st.markdown(f"<div class='aluno-card-header'>{nome}</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='aluno-card-sub'>{serie}</div>", unsafe_allow_html=True)
+                with c2:
+                    m1, m2, m3 = st.columns(3)
+                    # Exibe RAW
+                    m1.markdown(f"<div class='metric-label'>Total</div><div class='metric-value'>{raw_total}</div>", unsafe_allow_html=True)
+                    m2.markdown(f"<div class='metric-label'>Usadas</div><div class='metric-value'>{raw_consumido}</div>", unsafe_allow_html=True)
+                    m3.markdown(f"<div class='metric-label'>Saldo</div><div class='metric-value' style='color:#C5A065'>{raw_saldo}</div>", unsafe_allow_html=True)
+                    st.progress(progresso)
+                with c3:
+                    st.write("")
+                    st.button("Ver Detalhes", key=f"btn_{id_aluno}", on_click=ver_detalhes, args=(id_aluno,), use_container_width=True)
+
+    # --- MODO 2: DETALHES ---
+    else:
+        id_sel = st.session_state['aluno_detalhe_id']
+        # Importante: Como convertemos ID para string no inicio, comparamos como string aqui
+        row_aluno = df_alunos[df_alunos['ID Aluno'].astype(str) == str(id_sel)]
+        
+        if not row_aluno.empty:
+            data = row_aluno.iloc[0]
+            col_voltar, col_tit = st.columns([0.5, 4])
+            col_voltar.button("⬅ Voltar", on_click=voltar_lista)
+            col_tit.markdown(f"## {data['Nome Aluno']}")
+            st.markdown("---")
+
+            c_pes, c_esc = st.columns(2)
+            with c_pes:
+                with st.container(border=True):
+                    st.markdown("**Dados Pessoais**")
+                    st.text_input("Responsável", value=str(data.get('Nome Responsável','-')), disabled=True)
+                    st.text_input("Telefone", value=str(data.get('Telefone','-')), disabled=True)
+                    st.text_input("Nascimento", value=str(data.get('Data Nascimento','-')), disabled=True)
+            with c_esc:
+                with st.container(border=True):
+                    st.markdown("**Dados Escolares**")
+                    st.text_input("Série", value=str(data.get('Série','-')), disabled=True)
+                    st.text_input("Escola", value=str(data.get('Escola','-')), disabled=True)
+                    st.text_input("Endereço", value=str(data.get('Endereço','-')), disabled=True)
+
+            st.write("")
+            with st.container(border=True):
+                st.markdown("**Equipe de Professores**")
+                df_profs = db.get_professores()
+                df_links = db.get_vinculos()
                 
-                with st.form("form_update_vinculos_aluno"):
-                    profs_selecionados = st.multiselect(
-                        "Lista de Professores:",
-                        options=list(mapa_profs_nome_id.keys()),
-                        default=profs_ja_vinculados
-                    )
-                    
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    if st.form_submit_button("💾 Atualizar Equipe do Aluno", use_container_width=True):
-                        # Converte Nomes para IDs
-                        ids_para_salvar = [mapa_profs_nome_id[nome] for nome in profs_selecionados]
-                        
-                        try:
-                            # Chama a nova função do DB
-                            sucesso, msg = db.salvar_vinculos_do_aluno(id_aluno_sel, ids_para_salvar)
-                            if sucesso: st.toast(msg, icon='✅')
-                            else: st.toast("Erro ao salvar.", icon='❌')
-                        except Exception as e:
-                            st.toast(f"Erro: {e}", icon='🔥')
+                map_nome = {r['Nome Professor']: str(r['ID Professor']) for _, r in df_profs.iterrows()}
+                map_id = {str(r['ID Professor']): r['Nome Professor'] for _, r in df_profs.iterrows()}
+                
+                atuais = []
+                if not df_links.empty:
+                    links = df_links[df_links['ID Aluno'].astype(str) == str(id_sel)]
+                    ids = links['ID Professor'].astype(str).tolist()
+                    atuais = [map_id[uid] for uid in ids if uid in map_id]
+                
+                with st.form("form_vinc"):
+                    sel = st.multiselect("Professores:", list(map_nome.keys()), default=atuais)
+                    c_s, _ = st.columns([1, 4])
+                    if c_s.form_submit_button("Salvar Alterações", use_container_width=True):
+                        ids_save = [map_nome[n] for n in sel]
+                        ok, msg = db.salvar_vinculos_do_aluno(id_sel, ids_save)
+                        if ok: core.notify_success(msg)
+                        else: core.notify_error(msg)
+
+            st.write("")
+            with st.container(border=True):
+                st.markdown("**Observações**")
+                st.text_area("Notas:", value=str(data.get('Observações','')), height=100, disabled=True)
+
+# (Mantenha o form_novo_aluno

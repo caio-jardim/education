@@ -5,3 +5,4 @@ streamlit-option-menu
 streamlit-extras
 st-annotated-text
 extra-streamlit-components
+python-dateutil
