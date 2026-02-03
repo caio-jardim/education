@@ -244,22 +244,27 @@ section[data-testid="stSidebar"] .block-container {
 }
 
 /* ==========================================================================
-   8. CORREÇÃO DEFINITIVA DE FUNDO PRETO (CARDS E AULAS)
+   8. CORREÇÃO DEFINITIVA DE FUNDO E BORDAS (CARDS E AULAS)
    ========================================================================== */
 
-/* 1. Força TODOS os containers com borda (st.container(border=True)) a serem BRANCOS */
-div[data-testid="stVerticalBlockBorderWrapper"],
-div[data-testid="stVerticalBlockBorderWrapper"] > div {
+/* 1. Aplica o estilo APENAS no Wrapper (A caixa externa) */
+div[data-testid="stVerticalBlockBorderWrapper"] {
     background-color: #FFFFFF !important;
-    border-color: #E0E0E0 !important;
-    color: #1A1A1A !important; /* Garante texto preto */
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+    padding: 1rem !important; /* Garante um respiro interno */
 }
 
-/* 2. Estilo da Caixinha de Horário (Time Box) */
-/* Isso garante que ela apareça cinza claro com letras pretas */
+/* 2. Remove qualquer borda duplicada do conteúdo interno (O filho) */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* 3. Estilo da Caixinha de Horário (Time Box) */
 .time-box {
-    background-color: #F0F2F6 !important; /* Cinza bem claro */
-    color: #1A1A1A !important;           /* Preto forte */
+    background-color: #F0F2F6 !important;
+    color: #1A1A1A !important;
     border: 1px solid #D1D1D1 !important;
     border-radius: 6px !important;
     padding: 8px 0px !important;
@@ -271,7 +276,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {
     margin: auto !important;
 }
 
-/* Garante que o texto dentro da caixa (ícone e hora) obedeça a cor preta */
 .time-box span, .time-box p, .time-box div {
     color: #1A1A1A !important;
 }

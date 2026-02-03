@@ -4,17 +4,30 @@ from modules.ui import core
 from datetime import date
 
 def form_renovacao_pacote():
-    # CSS Toast
-    st.markdown("""<style>div[data-testid="stToastContainer"] {top: 80px; right: 20px; bottom: unset; left: unset; align-items: flex-end;}</style>""", unsafe_allow_html=True)
+    # --- CSS IDÊNTICO AO DE NOVO ALUNO ---
+    st.markdown("""
+        <style>
+            /* 1. Formulário Transparente (Sem borda e sem fundo preto) */
+            div[data-testid="stForm"] {
+                border: none !important;
+                box-shadow: none !important;
+                background-color: transparent !important;
+                padding: 0px !important;
+            }
+            /* 2. REDUÇÃO DE ESPAÇO DO TÍTULO */
+            div[data-testid="stForm"] > div:first-child {
+                padding-top: 0px !important;
+                margin-top: -20px !important; 
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-    st.markdown("#### Nova Venda / Renovação")
-    
+    # Carregamento de Dados
     df_alunos = db.get_alunos()
     if df_alunos.empty:
         st.warning("Nenhum aluno cadastrado no sistema.")
         return
 
-    # Mapeamentos
     col_nome = 'Nome Aluno' if 'Nome Aluno' in df_alunos.columns else 'nome_aluno'
     col_id = 'ID Aluno' if 'ID Aluno' in df_alunos.columns else 'id_aluno'
     
@@ -24,61 +37,76 @@ def form_renovacao_pacote():
         st.error("Erro nas colunas do arquivo CAD_Alunos.")
         return
 
+    # --- INÍCIO DO FORMULÁRIO (CLEAN) ---
     with st.form("form_venda_avulsa", clear_on_submit=True, enter_to_submit=False):
-        col_sel, col_hr = st.columns([2, 1])
-        with col_sel:
-            nome_sel = st.selectbox("Selecione o Aluno", options=df_alunos[col_nome].unique())
-        with col_hr:
-            qtd_horas = st.number_input("Qtd Horas", min_value=1.0, step=0.5, format="%.1f")
-            
-        c1, c2, c3 = st.columns(3)
-        data_contrato = c1.date_input("Data Venda", format="DD/MM/YYYY")
-        pagou = c2.checkbox("Pagamento confirmado?", value=True)
-        dt_pag = c3.date_input("Data Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou else None
+        
+        # CABEÇALHO COM ÍCONE (Igual Novo Aluno)
+        c_icon, c_title = st.columns([0.5, 10])
+        with c_icon:
+            # Reutilizei o ícone de pacote pois faz sentido para vendas
+            st.image("assets/icon_novo_pacote.png", width=45) 
+        with c_title:
+            st.markdown("### Nova Venda / Renovação")
 
-        st.markdown("---")
-        st.markdown("##### Valor da Venda")
+        # LINHA 1: ALUNO E HORAS
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            nome_sel = st.selectbox("Aluno", options=df_alunos[col_nome].unique())
+        with c2:
+            qtd_horas = st.number_input("Qtd Horas", min_value=1.0, step=0.5, format="%.1f")
         
-        # Layout Lado a Lado: Checkbox (Ativador) | Input (Valor)
-        col_check, col_val = st.columns([1, 2])
+        # LINHA 2: DATAS E PAGAMENTO
+        c3, c4, c5 = st.columns(3)
+        with c3:
+            data_contrato = st.date_input("Data da Venda", format="DD/MM/YYYY")
+        with c4:
+            st.write("") 
+            st.write("") # Espaçamento para alinhar checkbox
+            pagou = st.checkbox("Pagamento Confirmado", value=True)
+        with c5:
+            dt_pag = st.date_input("Data do Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou else None
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # SEÇÃO DE VALOR (Separada visualmente)
+        c_icon2, c_title2 = st.columns([0.5, 10])
+        with c_icon2:
+             # Ícone de dinheiro/vendas (fallback genérico se não tiver imagem específica)
+             st.markdown("💰") 
+        with c_title2:
+            st.markdown("### Detalhes Financeiros")
+
+        c_check, c_val, c_void = st.columns([1.5, 2, 3])
+        with c_check:
+            st.write("")
+            st.write("")
+            usar_manual = st.checkbox("Definir valor manual")
         
-        with col_check:
-            st.markdown("<br>", unsafe_allow_html=True) # Pequeno ajuste de alinhamento vertical
-            # Checkbox controla APENAS a lógica, não esconde o campo (para não travar)
-            usar_manual = st.checkbox("Inserir valor manualmente?")
-            
-        with col_val:
+        with c_val:
             valor_manual_input = st.number_input(
                 "Valor Total (R$)", 
                 min_value=0.0, 
                 step=10.0, 
-                format="%.2f",
-                help="Este valor só será usado se a caixa ao lado estiver marcada."
+                format="%.2f"
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # --- BOTÕES PEQUENOS À ESQUERDA ---
-        # Criamos colunas para "espremer" os botões na esquerda
-        c_btn1, c_btn2, c_space = st.columns([1, 1, 5])
+        # --- RODAPÉ: BOTÕES (Igual Novo Aluno) ---
+        c_btn_save, c_btn_cancel, c_void_btn = st.columns([1.5, 1.5, 6])
         
-        with c_btn1:
-            # Botão Confirmar
-            confirmar = st.form_submit_button("✅ Confirmar")
-            
-        with c_btn2:
-            # Botão Cancelar (Serve para limpar o form)
-            cancelar = st.form_submit_button("❌ Cancelar")
+        with c_btn_save:
+            confirmar = st.form_submit_button("Confirmar")
+        
+        with c_btn_cancel:
+            cancelar = st.form_submit_button("Cancelar", type="secondary")
 
-        # --- LÓGICA DE SUBMISSÃO ---
+        # --- LÓGICA ---
         if confirmar:
             id_aluno = mapa_alunos[nome_sel]
             contrato_str = data_contrato.strftime("%d/%m/%Y")
             pag_str = dt_pag.strftime("%d/%m/%Y") if dt_pag else ""
             
-            # LÓGICA DO VALOR:
-            # Só enviamos o valor manual SE o checkbox estiver marcado.
-            # Caso contrário, enviamos None e o sistema calcula automático.
             val_final = valor_manual_input if usar_manual else None
             
             try:
@@ -87,14 +115,16 @@ def form_renovacao_pacote():
                 )
                 
                 if sucesso:
-                    st.toast(msg, icon='✅')
+                    core.notify_success(msg)
                     st.cache_data.clear()
-                    # st.rerun() # Opcional: força recarregamento imediato
+                    # Pequeno delay para exibir a notificação antes de recarregar
+                    import time
+                    time.sleep(1)
+                    st.rerun()
                 else:
-                    st.toast(msg, icon='🚫')
+                    core.notify_warning(msg)
             except Exception as e:
-                st.toast(f"Erro: {e}", icon='🔥')
+                core.notify_error(f"Erro técnico: {e}")
         
         if cancelar:
-            # Ao clicar em cancelar, apenas recarregamos a página, o que limpa o form
             st.rerun()
