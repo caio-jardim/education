@@ -1,10 +1,10 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from modules.ui.core import load_css 
-import views.login as login_view
-import views.admin as admin_view
-import views.professor as prof_view
-import database as db
+
+# --- IMPORTAÇÃO UNIFICADA (A Grande Mudança) ---
+# Agora importamos as funções principais direto do pacote views
+from views import show_login, show_professor, show_admin
 
 # --- 1. CONFIGURAÇÃO INICIAL (Deve ser a primeira linha) ---
 st.set_page_config(
@@ -26,7 +26,7 @@ if 'logado' not in st.session_state:
 # --- 4. ROTEAMENTO PRINCIPAL ---
 if not st.session_state['logado']:
     # Tela de Login (Limpa, sem sidebar)
-    login_view.show_login()
+    show_login()
 
 else:
     # --- USUÁRIO LOGADO: CONSTRUÇÃO DA INTERFACE ---
@@ -34,21 +34,25 @@ else:
     # Recupera dados do usuário
     usuario_atual = st.session_state['usuario']
     nome_exibicao = usuario_atual.get('Nome Usuário', usuario_atual.get('Username', 'Usuário'))
+    # Garante que admin/Admin/ADMIN vire 'admin'
     tipo_perfil = str(usuario_atual.get('Tipo Perfil', '')).lower().strip()
 
     # --- SIDEBAR PREMIUM ---
     with st.sidebar:
-        # A. Logo da Empresa (Simulada em HTML)
-        st.image("assets/logo.png", use_container_width=True)
+        # A. Logo da Empresa
+        try:
+            st.image("assets/logo.png", use_container_width=True)
+        except:
+            st.markdown("## Education") # Fallback se não tiver imagem
+            
         st.write("") # Espaçamento
 
         # B. Menu de Navegação (Muda conforme o perfil)
         if tipo_perfil == 'admin':
             selected = option_menu(
                 menu_title=None,
-                # --- MUDANÇA AQUI: Adicionado "Alunos" antes de Professores ---
+                # As opções devem bater EXATAMENTE com os IFs do views/admin/main.py
                 options=["Visão Geral", "Cadastros", "Alunos", "Professores", "Vendas", "Financeiro", "Aulas"],
-                # --- MUDANÇA AQUI: Adicionado ícone "backpack" (mochila) para Alunos ---
                 icons=["grid-fill", "person-badge", "backpack", "people-fill", "tag-fill", "currency-dollar", "mortarboard"],
                 default_index=0,
                 styles={
@@ -69,11 +73,11 @@ else:
             # Menu Simplificado para Professores
             selected = option_menu(
                 menu_title=None,
+                # As opções devem bater EXATAMENTE com os IFs do views/professores/main.py
                 options=["Meus Alunos", "Minhas Aulas", "Agenda"],
                 icons=["people-fill", "mortarboard", "calendar3"],
                 default_index=0,
                 styles={
-                    # Mesmo estilo do admin para consistência
                     "container": {"padding": "0!important", "background-color": "transparent"},
                     "icon": {"color": "#FFFFFF", "font-size": "14px"},
                     "nav-link": {"font-family": "Poppins", "font-size": "15px", "text-align": "left", "margin": "5px", "color": "#FFFFFF", "--hover-color": "#333333"},
@@ -95,20 +99,20 @@ else:
             unsafe_allow_html=True
         )
 
-        # Botão de Sair (Estilo Secundário - Contorno)
+        # Botão de Sair
         if st.button("Sair do Sistema", use_container_width=True):
-            login_view.logout()
+            st.session_state['logado'] = False
+            st.session_state['usuario'] = None
+            st.rerun()
 
     # --- ÁREA DE CONTEÚDO PRINCIPAL ---
-    # Aqui passamos a variável 'selected' para as views saberem o que renderizar
+    # Aqui chamamos as funções importadas diretamente do __init__.py das views
     
     if tipo_perfil == 'admin':
-        # Admin recebe a seleção (inclusive a nova "Alunos" e "Professores")
-        admin_view.show_admin(usuario_atual, selected_page=selected)
+        show_admin(usuario_atual, selected_page=selected)
         
     elif tipo_perfil in ['professor', 'prof']:
-        # O mesmo para o professor
-        prof_view.show_professor(usuario_atual, selected_page=selected)
+        show_professor(usuario_atual, selected_page=selected)
         
     else:
         st.error(f"⚠️ Acesso negado. Perfil não identificado: {tipo_perfil}")

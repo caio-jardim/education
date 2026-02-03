@@ -1,12 +1,15 @@
 import pandas as pd
 from .connection import conectar_planilha
+import streamlit as st
 
+@st.cache_data(ttl=60)
 def get_usuarios():
     try:
         ws = conectar_planilha().worksheet("CAD_Usuarios")
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
+@st.cache_data(ttl=300) # Alunos mudam menos, pode ser cache maior (5 min)
 def get_alunos():
     try:
         ws = conectar_planilha().worksheet("CAD_Alunos")
@@ -16,18 +19,21 @@ def get_alunos():
         return df
     except: return pd.DataFrame()
 
+@st.cache_data(ttl=300)
 def get_professores():
     try:
         ws = conectar_planilha().worksheet("CAD_Professores")
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
+@st.cache_data(ttl=60)
 def get_pacotes():
     try:
         ws = conectar_planilha().worksheet("CAD_Pacotes")
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
+@st.cache_data(ttl=60)
 def get_aulas():
     try:
         ws = conectar_planilha().worksheet("MOV_Aulas")
@@ -40,6 +46,7 @@ def get_vinculos():
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
+@st.cache_data(ttl=60)
 def get_financeiro_geral():
     """
     Lê o MOV_Financeiro tratando R$ 1.000,00 e 0,50 corretamente.
@@ -92,6 +99,7 @@ def get_financeiro_geral():
         print(f"Erro ao ler financeiro: {e}")
         return pd.DataFrame()
 
+@st.cache_data(ttl=60)
 def get_saldo_alunos():
     """
     Lê a aba DASH_Alunos usando get_all_values (RAW).
@@ -161,5 +169,6 @@ def get_saldo_alunos():
 
 # Mantive essa função caso você esteja usando em outro lugar, 
 # mas ela faz a mesma coisa que a get_saldo_alunos ajustada acima.
+@st.cache_data(ttl=60)
 def get_dash_alunos_data():
     return get_saldo_alunos()

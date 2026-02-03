@@ -56,7 +56,6 @@ def form_novo_aluno():
             st.image("assets/icon_novo_aluno.png", width=45) 
         with c_title:
             st.markdown("### Novo Aluno")
-            st.caption("Preencha os dados pessoais e escolares.")
 
         # Campos
         col_a, col_b = st.columns(2)

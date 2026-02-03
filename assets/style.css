@@ -27,12 +27,9 @@ header[data-testid="stHeader"] > div:first-child {
 /* 2. LOGO: POSIÇÃO E TAMANHO */
 [data-testid="stSidebar"] img[src*="logo"],
 [data-testid="stSidebar"] img[src*="png"] {
-    /* Sobe a logo */
     margin-top: -80px !important; 
     margin-bottom: 20px !important;
     padding-top: 0px !important;
-    
-    /* Tamanho da logo */
     width: 260px !important;  
     max-width: 90% !important;
     height: auto !important;
@@ -74,7 +71,7 @@ div[data-testid="stSidebarNav"] {
 }
 
 /* ==========================================================================
-   3. FORMULÁRIOS: O GRANDE FIX (INPUTS BRANCOS)
+   3. FORMULÁRIOS E CONTAINERS (FIX GERAL)
    ========================================================================== */
 label[data-testid="stLabel"], label {
     color: #1A1A1A !important;
@@ -86,7 +83,9 @@ div[data-baseweb="input"],
 div[data-baseweb="base-input"],     
 div[data-testid="stSelectbox"] div[data-baseweb="select"] > div, 
 div[data-testid="stMultiSelect"] div[data-baseweb="select"] > div, 
-div[data-testid="stNumberInput"] div[data-baseweb="input"], 
+div[data-testid="stNumberInput"] div[data-baseweb="input"],
+div[data-testid="stTimeInput"] input, /* Adicionado para garantir o TimeInput */
+div[data-testid="stDateInput"] input, /* Adicionado para garantir o DateInput */
 textarea { 
     background-color: #FFFFFF !important;
     border: 1px solid #D1D1D1 !important;
@@ -102,8 +101,40 @@ div[data-baseweb="select"] svg {
     fill: #1A1A1A !important;
 }
 
+/* --- NOVO: FIX PARA CARDS/CONTAINERS COM BORDA --- */
+/* Isso resolve o problema do fundo preto nos cards de Aulas/Alunos */
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background-color: #FFFFFF !important;
+    border: 1px solid #E0E0E0 !important;
+    border-radius: 8px !important;
+}
+
 /* ==========================================================================
-   4. KPI CARDS
+   FIX ESPECÍFICO PARA TIME INPUT (HORÁRIO)
+   ========================================================================== */
+
+/* 1. Garante que a caixa ao redor do horário seja branca */
+div[data-testid="stTimeInput"] div[data-baseweb="input"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #D1D1D1 !important;
+    color: #1A1A1A !important;
+}
+
+/* 2. Garante que a caixa ao redor da DATA também seja branca (prevenção) */
+div[data-testid="stDateInput"] div[data-baseweb="input"] {
+    background-color: #FFFFFF !important;
+    border: 1px solid #D1D1D1 !important;
+    color: #1A1A1A !important;
+}
+
+/* 3. Garante que os ícones (relógio e calendário) sejam pretos */
+div[data-testid="stTimeInput"] svg,
+div[data-testid="stDateInput"] svg {
+    fill: #1A1A1A !important;
+}
+
+/* ==========================================================================
+   4. KPI CARDS E WIDGETS PERSONALIZADOS
    ========================================================================== */
 .kpi-card {
     background-color: #FFFFFF;
@@ -123,6 +154,20 @@ div[data-baseweb="select"] svg {
 }
 .kpi-icon-img {
     float: right; width: 32px; height: 32px; opacity: 0.9;
+}
+
+/* CLASSE TIME-BOX (Para o Horário nas Aulas) */
+.time-box {
+    background-color: #F8F9FA !important;
+    color: #1A1A1A !important;
+    border: 1px solid #D1D1D1;
+    border-radius: 6px;
+    padding: 8px 0px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+    width: 100%;
+    display: block;
 }
 
 /* ==========================================================================
@@ -166,21 +211,20 @@ span[data-baseweb="tag"] {
 }
 span[data-baseweb="tag"] span { color: #1A1A1A !important; }
 span[data-baseweb="tag"] svg { fill: #1A1A1A !important; }
+
 /* ==========================================================================
    7. RODAPÉ (LOGADO COMO + BOTÃO SAIR) - AJUSTE FINAL
    ========================================================================== */
 
 /* 1. O Bloco 'Logado Como' */
-/* Aumentei para -50px para subir bem mais */
 [data-testid="stSidebar"] .element-container:has(div[style*="background-color: #2C2C2C"]) {
     margin-bottom: 0px !important;
-    margin-top: -50px !important;  /* <--- MEXA AQUI SE QUISER SUBIR MAIS */
+    margin-top: -50px !important; 
 }
 
 /* 2. Botão "Sair" */
-/* Aumentei para -25px para acompanhar a subida do bloco de cima */
 [data-testid="stSidebar"] div.stButton > button {
-    margin-top: -25px !important; /* <--- MEXA AQUI SE QUISER COLAR MAIS */
+    margin-top: -25px !important; 
     width: 100% !important;
     color: #FFFFFF !important;
     border: 1px solid #FFFFFF !important;
@@ -194,7 +238,58 @@ span[data-baseweb="tag"] svg { fill: #1A1A1A !important; }
     background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Ajuste de fundo da sidebar para garantir que nada fique cortado */
+/* Ajuste de fundo da sidebar */
 section[data-testid="stSidebar"] .block-container {
     padding-bottom: 120px !important; 
+}
+
+/* ==========================================================================
+   8. CORREÇÃO DEFINITIVA DE FUNDO PRETO (CARDS E AULAS)
+   ========================================================================== */
+
+/* 1. Força TODOS os containers com borda (st.container(border=True)) a serem BRANCOS */
+div[data-testid="stVerticalBlockBorderWrapper"],
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background-color: #FFFFFF !important;
+    border-color: #E0E0E0 !important;
+    color: #1A1A1A !important; /* Garante texto preto */
+}
+
+/* 2. Estilo da Caixinha de Horário (Time Box) */
+/* Isso garante que ela apareça cinza claro com letras pretas */
+.time-box {
+    background-color: #F0F2F6 !important; /* Cinza bem claro */
+    color: #1A1A1A !important;           /* Preto forte */
+    border: 1px solid #D1D1D1 !important;
+    border-radius: 6px !important;
+    padding: 8px 0px !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    width: 100% !important;
+    display: block !important;
+    margin: auto !important;
+}
+
+/* Garante que o texto dentro da caixa (ícone e hora) obedeça a cor preta */
+.time-box span, .time-box p, .time-box div {
+    color: #1A1A1A !important;
+}
+
+/* ==========================================================================
+   9. REMOÇÃO TOTAL DE LINHAS DE SEPARAÇÃO (HR)
+   ========================================================================== */
+
+/* Isso esconde qualquer st.markdown("---") ou st.divider() */
+hr {
+    margin: 0 !important;
+    height: 0px !important;
+    border: none !important;
+    visibility: hidden !important;
+    display: none !important;
+}
+
+/* Se houver alguma linha residual do cabeçalho nativo */
+.stDeployButton {
+    display: none !important;
 }
