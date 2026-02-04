@@ -1,46 +1,20 @@
 import streamlit as st
 import database as db
+import database.vendas as db_vendas # <--- IMPORTANTE: Importar aqui no topo
 from modules.ui import core
-from datetime import date, datetime, timedelta, time # time aqui é a CLASSE de horário
+from datetime import date, datetime, timedelta, time
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY
 import pandas as pd
-import time as tm # tm aqui é a BIBLIOTECA de sistema (para sleep)
+import time as tm
 
 def show_gestao_aulas():
     # --- CSS: LAYOUT DO FORMULÁRIO ---
     st.markdown("""
         <style>
-            /* 1. Ajuste do Toast */
-            div[data-testid="stToastContainer"] {
-                top: 80px; right: 20px; bottom: unset; left: unset; align-items: flex-end;
-            }
-            
-            /* 2. Formulário Transparente */
-            div[data-testid="stForm"] {
-                border: none !important;
-                box-shadow: none !important;
-                background-color: transparent !important;
-                padding: 0px !important;
-            }
-            /* 3. Ajuste Título */
-            div[data-testid="stForm"] > div:first-child {
-                padding-top: 0px !important;
-                margin-top: -10px !important; 
-            }
-
-            /* 4. Box de Horário */
-            .time-box {
-                background-color: #F0F2F6 !important; 
-                color: #1A1A1A !important;
-                border: 1px solid #D1D1D1;
-                border-radius: 6px;
-                padding: 8px 0px;
-                text-align: center;
-                font-weight: 700;
-                font-size: 15px;
-                display: block;
-                width: 100%;
-            }
+            div[data-testid="stToastContainer"] { top: 80px; right: 20px; bottom: unset; left: unset; align-items: flex-end; }
+            div[data-testid="stForm"] { border: none !important; box-shadow: none !important; background-color: transparent !important; padding: 0px !important; }
+            div[data-testid="stForm"] > div:first-child { padding-top: 0px !important; margin-top: -10px !important; }
+            .time-box { background-color: #F0F2F6 !important; color: #1A1A1A !important; border: 1px solid #D1D1D1; border-radius: 6px; padding: 8px 0px; text-align: center; font-weight: 700; font-size: 15px; display: block; width: 100%; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -54,7 +28,6 @@ def show_gestao_aulas():
     with tab_agenda:
         if not df_aulas.empty and 'Status' in df_aulas.columns:
             df_agendadas = df_aulas[df_aulas['Status'] == 'Agendada'].copy()
-            
             if not df_agendadas.empty:
                 df_agendadas['Data_Dt'] = pd.to_datetime(df_agendadas['Data'], format="%d/%m/%Y", errors='coerce')
                 col_ordem = ['Data_Dt']
@@ -70,24 +43,24 @@ def show_gestao_aulas():
                     dia_pt = mapa.get(dia_nome, dia_nome)
 
                     st.markdown(f"##### 📆 {dia_str} <span style='color:gray; font-size:0.8em'>({dia_pt})</span>", unsafe_allow_html=True)
-                    
                     aulas_dia = df_agendadas[df_agendadas['Data_Dt'] == dia]
                     
                     for _, row in aulas_dia.iterrows():
                         with st.container(border=True):
                             c1, c2, c3, c4 = st.columns([1.5, 4, 2, 2])
                             horario = row.get('Horário', '00:00')
-                            
                             c1.markdown(f"<div class='time-box'>⏰ {horario}</div>", unsafe_allow_html=True)
-                            
                             c2.markdown(f"**{row['Nome Aluno']}**")
                             c2.caption(f"Prof. {row['Nome Professor']}")
                             c3.caption(f"{row['Modalidade']} • {row['Duração']}h")
-                            
                             with c4:
                                 ca, cb = st.columns(2)
                                 if ca.button("✅", key=f"ok_{row['ID Aula']}", help="Confirmar"):
                                     db.atualizar_status_aula(row['ID Aula'], "Realizada")
+                                    # TENTA ATIVAR PACOTE AQUI TAMBÉM SE CONFIRMAR AGENDA
+                                    try:
+                                        db_vendas.processar_primeira_aula(row['ID Aluno'], pd.to_datetime(row['Data'], format="%d/%m/%Y"))
+                                    except: pass
                                     st.rerun()
                                 if cb.button("❌", key=f"cancel_{row['ID Aula']}", help="Cancelar"):
                                     db.atualizar_status_aula(row['ID Aula'], "Cancelada c/ Custo")
@@ -99,21 +72,18 @@ def show_gestao_aulas():
 
     # --- TAB 2: NOVO LANÇAMENTO ---
     with tab_novo:
-        
         df_alunos = db.get_alunos()
         df_profs = db.get_professores()
         mapa_alunos = dict(zip(df_alunos['Nome Aluno'], df_alunos['ID Aluno'])) if not df_alunos.empty else {}
         mapa_profs = dict(zip(df_profs['Nome Professor'], df_profs['ID Professor'])) if not df_profs.empty else {}
         
         with st.form("form_aula_inteligente", clear_on_submit=False):
-            
             c_icon, c_title = st.columns([0.5, 10])
             with c_icon: st.markdown("📝")
             with c_title: st.markdown("### Dados da Aula")
 
             tipo_registro = st.radio("O que deseja fazer?", ["Agendar Aula Futura", "Registrar Aula Realizada"], horizontal=True)
             status_automatico = "Agendada" if tipo_registro == "Agendar Aula Futura" else "Realizada"
-            
             st.markdown("---")
             
             c1, c2, c3 = st.columns(3)
@@ -127,21 +97,15 @@ def show_gestao_aulas():
             c4, c5, c6 = st.columns(3)
             data_inicio = c4.date_input("Data", value=date.today(), format="DD/MM/YYYY")
             
-            # Lista de horários (30 em 30 min)
             lista_horarios = []
             for h in range(7, 23):
                 lista_horarios.append(f"{h:02d}:00")
                 if h < 23: lista_horarios.append(f"{h:02d}:30")
-            
             if "23:00" in lista_horarios: lista_horarios.remove("23:00")
             if "23:30" in lista_horarios: lista_horarios.remove("23:30")
-            
             idx_padrao = lista_horarios.index("09:00") if "09:00" in lista_horarios else 0
             
-            # Selectbox de Horário
             hora_selecionada_str = c5.selectbox("Horário", options=lista_horarios, index=idx_padrao)
-            
-            # Conversão SEGURA (Usando 'time' do datetime)
             h_sel, m_sel = map(int, hora_selecionada_str.split(':'))
             hora_inicio = time(h_sel, m_sel) 
 
@@ -159,28 +123,20 @@ def show_gestao_aulas():
             if tipo_rep != "Uma única vez":
                 freq_map = {"Diariamente": DAILY, "Semanalmente": WEEKLY, "Mensalmente": MONTHLY}
                 try:
-                    datas_geradas = list(rrule(
-                        freq=freq_map[tipo_rep],
-                        dtstart=datetime.combine(data_inicio, hora_inicio),
-                        count=qtd_repeticoes
-                    ))
+                    datas_geradas = list(rrule(freq=freq_map[tipo_rep], dtstart=datetime.combine(data_inicio, hora_inicio), count=qtd_repeticoes))
                     datas_geradas = [d.date() for d in datas_geradas]
-                except Exception as e:
-                    st.error(f"Erro datas: {e}")
+                except Exception as e: st.error(f"Erro datas: {e}")
 
             if len(datas_geradas) > 1:
                 st.caption(f"ℹ️ Serão criados **{len(datas_geradas)} registros** com status **'{status_automatico}'**.")
 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # --- BOTÕES PADRONIZADOS (IGUAL AO VENDAS) ---
             c_btn_save, c_btn_cancel, c_void = st.columns([1.5, 1.5, 6])
-            
             btn_disabled = not (opcoes_alunos and opcoes_profs)
             
             with c_btn_save:
                 confirmar = st.form_submit_button(f"Salvar", disabled=btn_disabled)
-            
             with c_btn_cancel:
                 cancelar = st.form_submit_button("Cancelar", type="secondary")
             
@@ -213,18 +169,27 @@ def show_gestao_aulas():
                             lote.append([d.strftime("%d/%m/%Y"), hora_str, id_a, aluno, id_p, prof, modalidade, str(duracao).replace('.', ','), status_automatico, comissao])
                         
                         sucesso, msg = db.registrar_lote_aulas(lote)
+                        
                         if sucesso:
+                            # --- BLOCO DE ATIVAÇÃO DE PACOTE ---
+                            if datas_geradas:
+                                try:
+                                    # Chama a função que acabamos de blindar no database/vendas.py
+                                    ativou, msg_venda = db_vendas.processar_primeira_aula(id_a, datas_geradas[0])
+                                    if ativou:
+                                        core.notify_success(msg_venda)
+                                except Exception as e_venda:
+                                    print(f"Erro ao processar pacote: {e_venda}")
+                            # -----------------------------------
+
                             core.notify_success(msg)
                             st.cache_data.clear()
-                            
-                            # USANDO 'tm' (ALIAS) PARA NÃO CONFLITAR
                             tm.sleep(1) 
                             st.rerun()
                     except Exception as e:
                         core.notify_error(f"Erro: {e}")
             
-            if cancelar:
-                st.rerun()
+            if cancelar: st.rerun()
 
     # --- TAB 3: HISTÓRICO ---
     with tab_lista:

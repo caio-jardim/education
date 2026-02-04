@@ -120,7 +120,7 @@ def form_novo_aluno():
                     
                     ids_vincular = [mapa_professores[p] for p in profs_selecionados]
                     if ids_vincular:
-                        db.salvar_vinculos_do_professor(novo_id, ids_vincular)
+                        db.salvar_vinculos_do_aluno(novo_id, ids_vincular)
                     
                     sucesso, msg = db.registrar_venda_automatica(novo_id, nome, qtd_horas, "Pix", contrato_str, pagamento_str)
                     

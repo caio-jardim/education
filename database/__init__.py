@@ -25,7 +25,7 @@ from .financeiro import registrar_movimentacao_financeira
 from .dashboards import atualizar_dash_dados
 
 # 5. Escritas - Vendas
-from .vendas import registrar_venda_automatica
+from .vendas import registrar_venda_automatica, processar_primeira_aula
 
 # 6. Escritas - Aulas
 from .aulas import (

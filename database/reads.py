@@ -9,7 +9,7 @@ def get_usuarios():
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
-@st.cache_data(ttl=300) # Alunos mudam menos, pode ser cache maior (5 min)
+@st.cache_data(ttl=60) # Alunos mudam menos, pode ser cache maior (5 min)
 def get_alunos():
     try:
         ws = conectar_planilha().worksheet("CAD_Alunos")
@@ -19,7 +19,7 @@ def get_alunos():
         return df
     except: return pd.DataFrame()
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def get_professores():
     try:
         ws = conectar_planilha().worksheet("CAD_Professores")

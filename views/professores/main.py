@@ -1,59 +1,45 @@
 import streamlit as st
-import database as db
 from modules.ui.core import header_page
 
-# Importa as sub-funções locais
+# Importações das views
+from .agenda import show_agenda
 from .alunos import show_page_alunos
 from .aulas import show_page_aulas
 
 def show_professor(usuario, selected_page):
     
-    # --- 1. RECUPERAÇÃO SEGURA DO ID DO PROFESSOR ---
-    id_prof_logado = usuario.get('id_vinculo') or usuario.get('ID Vinculo') or usuario.get('ID Vínculo')
+    # --- 1. RECUPERAÇÃO INTELIGENTE DO ID ---
+    # Tenta vários nomes possíveis para a coluna de ID no CAD_Usuarios
+    id_prof = (
+        usuario.get('ID Professor') or 
+        usuario.get('ID Link') or 
+        usuario.get('ID Vinculo') or 
+        usuario.get('id_professor') or
+        usuario.get('ID')
+    )
     
-    if not id_prof_logado:
-        st.error("🚫 Erro de Cadastro: Seu usuário não possui um 'ID Vínculo' definido.")
-        return
+    nome_prof = usuario.get('Nome Usuário') or usuario.get('Nome') or "Professor"
 
-    # --- 2. BUSCA DADOS DO PROFESSOR ---
-    try:
-        df_professores = db.get_professores()
-        
-        # Renomeia para garantir compatibilidade
-        df_professores = df_professores.rename(columns={
-            'ID Professor': 'id_prof',
-            'Nome Professor': 'nome_prof',
-            'Status': 'status'
-        })
+    # --- 2. DEBUG DE LOGIN (Para descobrirmos o nome certo da coluna) ---
+    if not id_prof:
+        st.error("⚠️ ERRO CRÍTICO: ID do Professor não identificado no login.")
+        with st.expander("🕵️ Ver dados do Usuário (Debug)"):
+            st.write("O sistema carregou estes dados do seu login:")
+            st.json(usuario) # Mostra o dicionário inteiro para você ver a chave certa
+            st.warning("Verifique se na aba 'CAD_Usuarios' existe uma coluna com o ID do professor preenchido.")
+        return # Para aqui se não tiver ID
+    # -------------------------------------------------------------------
 
-        if 'id_prof' not in df_professores.columns:
-            st.error("Erro técnico: Coluna 'ID Professor' não encontrada na planilha CAD_Professores.")
-            return
-
-        # Filtra o Professor logado
-        meus_dados = df_professores[df_professores['id_prof'].astype(str) == str(id_prof_logado)]
-        
-        if meus_dados.empty:
-            st.warning(f"⚠️ O ID {id_prof_logado} está no login, mas não achei na aba CAD_Professores.")
-            return
-
-        nome_prof = meus_dados.iloc[0]['nome_prof']
-        
-    except Exception as e:
-        st.error(f"Erro de conexão com banco de professores: {e}")
-        return
-
-    # --- NAVEGAÇÃO / ROTEAMENTO ---
-
-    # 1. MEUS ALUNOS
+    # --- 3. ROTEAMENTO ---
+    
+    # A. MEUS ALUNOS
     if selected_page == "Meus Alunos":
-        show_page_alunos(id_prof_logado, nome_prof)
+        show_page_alunos(id_prof, nome_prof)
 
-    # 2. MINHAS AULAS
-    elif selected_page == "Minhas Aulas":
-        show_page_aulas(id_prof_logado, nome_prof)
+    # B. MINHAS AULAS
+    elif selected_page == "Minhas Aulas": 
+        show_page_aulas(id_prof, nome_prof)
 
-    # 3. AGENDA
+    # C. AGENDA (NOVO)
     elif selected_page == "Agenda":
-        header_page("Minha Agenda", "Próximas aulas")
-        st.info("🚧 Em desenvolvimento. A agenda futura será exibida aqui.")
+        show_agenda(id_prof, nome_prof)
