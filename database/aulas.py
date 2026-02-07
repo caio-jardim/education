@@ -7,29 +7,52 @@ from .utils import to_float, normalizar_id
 from .dashboards import atualizar_dash_dados
 
 # --- ADICIONADO O ARGUMENTO HORARIO ---
-def registrar_aula(data, horario, id_aluno, nome_aluno, id_prof, nome_prof, mod, duracao, status):
+def registrar_aula(data, horario, id_aluno, nome_aluno, id_prof, nome_prof, mod, duracao, status, comissao_externa=None):
     sh = conectar_planilha()
     
-    # Lógica de Comissão
-    comissao = 0.0
-    try:
-        df_profs = get_professores()
-        # (Lógica de comissão mantida igual a original...)
-        # ...
-        # Se quiser, cole sua lógica completa de cálculo aqui novamente
-    except: pass
+    # Lógica de Comissão Híbrida
+    # 1. Se receber valor externo (do Painel Professor), usa ele.
+    # 2. Se não receber (None), calcula automaticamente (Fallback/Admin).
+    
+    comissao_final = 0.0
+    
+    if comissao_externa is not None:
+        comissao_final = to_float(comissao_externa)
+    else:
+        # --- Cálculo Automático (Caso Admin use esta função) ---
+        try:
+            df_profs = get_professores()
+            if not df_profs.empty:
+                # Filtra o professor
+                dados_prof = df_profs[df_profs['ID Professor'].astype(str) == str(id_prof)]
+                if not dados_prof.empty:
+                    linha = dados_prof.iloc[0]
+                    
+                    # Define termo de busca (Education, Online, Casa)
+                    termo = "Education" if mod == "Education" else mod.split()[0]
+                    
+                    # Procura valor da hora
+                    val_hora = 0.0
+                    for k, v in linha.items():
+                        if termo.lower() in k.lower():
+                            val_hora = to_float(v)
+                            break
+                    
+                    comissao_final = val_hora * to_float(duracao)
+        except Exception as e:
+            print(f"Erro no cálculo automático de comissão: {e}")
 
     ws = sh.worksheet("MOV_Aulas")
     col = ws.col_values(1)
     try: ult = int(col[-1]) if len(col) > 1 else 0
     except: ult = len(col)
 
-    # --- AJUSTE AQUI: INSERINDO HORARIO NA ORDEM CORRETA ---
-    # Ordem Sheets: ID, Data, Horário, ID Aluno, Nome Aluno, ID Prof, Nome Prof, Mod, Duração, Status, Comissão
+    # --- INSERÇÃO COM ORDEM CORRETA (11 Colunas) ---
+    # 1:ID, 2:Data, 3:Horário, 4:ID_A, 5:Nome_A, 6:ID_P, 7:Nome_P, 8:Mod, 9:Dur, 10:Status, 11:Comissão
     ws.append_row([
         ult + 1, 
         data, 
-        horario,  # <--- Novo campo
+        horario, 
         id_aluno, 
         nome_aluno, 
         id_prof, 
@@ -37,13 +60,9 @@ def registrar_aula(data, horario, id_aluno, nome_aluno, id_prof, nome_prof, mod,
         mod, 
         to_float(duracao), 
         status, 
-        comissao
+        to_float(comissao_final)
     ])
     
-    # Trigger Vencimento
-    if status == "Realizada":
-        pass # (Sua lógica original mantida)
-        
     atualizar_dash_dados()
     return True
 

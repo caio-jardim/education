@@ -46,6 +46,13 @@ def get_vinculos():
         return pd.DataFrame(ws.get_all_records())
     except: return pd.DataFrame()
 
+# Adicione isso em database/reads.py ou __init__.py
+def get_vendas():
+    sh = conectar_planilha() # Ou sua função de conexão existente
+    ws = sh.worksheet("MOV_Vendas")
+    data = ws.get_all_records()
+    return pd.DataFrame(data)
+
 @st.cache_data(ttl=60)
 def get_financeiro_geral():
     """

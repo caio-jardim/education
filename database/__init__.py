@@ -15,7 +15,8 @@ from .reads import (
     get_vinculos, 
     get_financeiro_geral, 
     get_saldo_alunos,
-    get_dash_alunos_data
+    get_dash_alunos_data,
+    get_vendas
 )
 
 # 3. Escritas - Financeiro

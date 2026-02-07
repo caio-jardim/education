@@ -1,6 +1,6 @@
 import streamlit as st
 import database as db
-import database.vendas as db_vendas # <--- IMPORTANTE: Importar aqui no topo
+import database.vendas as db_vendas # <--- Mantido o import importante
 from modules.ui import core
 from datetime import date, datetime, timedelta, time
 from dateutil.rrule import rrule, DAILY, WEEKLY, MONTHLY
@@ -57,7 +57,6 @@ def show_gestao_aulas():
                                 ca, cb = st.columns(2)
                                 if ca.button("✅", key=f"ok_{row['ID Aula']}", help="Confirmar"):
                                     db.atualizar_status_aula(row['ID Aula'], "Realizada")
-                                    # TENTA ATIVAR PACOTE AQUI TAMBÉM SE CONFIRMAR AGENDA
                                     try:
                                         db_vendas.processar_primeira_aula(row['ID Aluno'], pd.to_datetime(row['Data'], format="%d/%m/%Y"))
                                     except: pass
@@ -171,16 +170,13 @@ def show_gestao_aulas():
                         sucesso, msg = db.registrar_lote_aulas(lote)
                         
                         if sucesso:
-                            # --- BLOCO DE ATIVAÇÃO DE PACOTE ---
                             if datas_geradas:
                                 try:
-                                    # Chama a função que acabamos de blindar no database/vendas.py
                                     ativou, msg_venda = db_vendas.processar_primeira_aula(id_a, datas_geradas[0])
                                     if ativou:
                                         core.notify_success(msg_venda)
                                 except Exception as e_venda:
                                     print(f"Erro ao processar pacote: {e_venda}")
-                            # -----------------------------------
 
                             core.notify_success(msg)
                             st.cache_data.clear()
@@ -191,6 +187,43 @@ def show_gestao_aulas():
             
             if cancelar: st.rerun()
 
-    # --- TAB 3: HISTÓRICO ---
+    # --- TAB 3: HISTÓRICO (FILTRO MENSAL ADICIONADO) ---
     with tab_lista:
-        if not df_aulas.empty: st.dataframe(df_aulas, use_container_width=True, hide_index=True)
+        st.markdown("##### 📜 Histórico por Mês")
+        
+        if not df_aulas.empty:
+            # 1. Copia para não afetar o cache original
+            df_hist = df_aulas.copy()
+            
+            # 2. Converte Data
+            df_hist['Data_Dt'] = pd.to_datetime(df_hist['Data'], format="%d/%m/%Y", errors='coerce')
+            df_hist = df_hist.dropna(subset=['Data_Dt']) # Remove datas inválidas se houver
+            df_hist = df_hist.sort_values(by='Data_Dt', ascending=False)
+            
+            # 3. Cria Coluna de Filtro (Mês/Ano)
+            # Mapa PT-BR Manual para garantir a língua independente do servidor
+            meses_pt = {1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'}
+            
+            df_hist['Mes_Filtro'] = df_hist['Data_Dt'].apply(lambda x: f"{meses_pt[x.month]}/{x.year}")
+            
+            # 4. Selectbox de Filtro
+            opcoes_meses = df_hist['Mes_Filtro'].unique().tolist()
+            
+            c_filtro, c_vazio = st.columns([2, 4])
+            mes_selecionado = c_filtro.selectbox("Selecione o Mês:", options=opcoes_meses)
+            
+            # 5. Filtra Dados
+            df_exibicao = df_hist[df_hist['Mes_Filtro'] == mes_selecionado]
+            
+            # 6. Exibe Tabela Limpa (Remove colunas auxiliares)
+            cols_ocultar = ['Data_Dt', 'Mes_Filtro', 'key']
+            st.dataframe(
+                df_exibicao.drop(columns=[c for c in cols_ocultar if c in df_exibicao.columns]), 
+                use_container_width=True, 
+                hide_index=True
+            )
+            
+            st.caption(f"Total de {len(df_exibicao)} aulas em {mes_selecionado}.")
+            
+        else:
+            st.info("Nenhuma aula registrada no sistema.")
