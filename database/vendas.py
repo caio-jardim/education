@@ -1,7 +1,7 @@
-# database/vendas.py
 from .connection import conectar_planilha
 from .reads import get_pacotes
 from .utils import to_float
+# Importamos a função ajustada do financeiro (que aceita id_aluno e nome_aluno)
 from .financeiro import registrar_movimentacao_financeira
 from .dashboards import atualizar_dash_dados
 from datetime import datetime, timedelta
@@ -13,7 +13,7 @@ def registrar_venda_automatica(id_aluno, nome_aluno, qtd, forma, dt_contrato, dt
     total = 0.0
     nome_pct = ""
     
-    # Lógica de Preço
+    # --- LÓGICA DE PREÇO (MANTIDA INTACTA) ---
     if isinstance(valor_manual, (int, float)) and valor_manual > 0:
         total = float(valor_manual)
         nome_pct = f"Personalizado ({qtd_float}h)"
@@ -28,20 +28,75 @@ def registrar_venda_automatica(id_aluno, nome_aluno, qtd, forma, dt_contrato, dt
                     break
             except: continue
     
-    # Salvar Venda
+    # --- SALVAR VENDA ---
     ws = sh.worksheet("MOV_Vendas")
     col = ws.col_values(1)
     try: ult = int(col[-1]) if len(col) > 1 else 0
     except: ult = len(col)
     
     status = "Pago" if dt_pag else "Pendente"
-    ws.append_row([ult + 1, dt_contrato, id_aluno, nome_aluno, nome_pct, qtd_float, total, forma, dt_pag, "", "", status])
     
+    # Ordem: ID, Data, ID Aluno, Nome Aluno, Pacote, Qtd, Valor, Forma, Dt Pag, Dt 1a Aula, Vencimento, Status
+    ws.append_row([
+        ult + 1, 
+        dt_contrato, 
+        str(id_aluno), 
+        nome_aluno, 
+        nome_pct, 
+        qtd_float, 
+        total, 
+        forma, 
+        dt_pag, 
+        "", 
+        "", 
+        status
+    ])
+    
+    # --- INTEGRAÇÃO COM FINANCEIRO (AJUSTADA) ---
     if status == "Pago":
-        registrar_movimentacao_financeira(dt_pag, "Entrada", "Venda Pacote", f"Venda {nome_pct}", total, "Pago")
+        registrar_movimentacao_financeira(
+            data=dt_pag, 
+            tipo="Entrada", 
+            categoria="Venda Pacote", 
+            descricao=f"Venda {nome_pct}", 
+            valor=total, 
+            status="Pago",
+            id_aluno=str(id_aluno),  # <--- Passando ID
+            nome_aluno=nome_aluno    # <--- Passando Nome
+        )
     
-    atualizar_dash_dados() # Chama a atualização isolada
+    atualizar_dash_dados() 
     return True, f"Venda R$ {total:,.2f}"
+
+def registrar_venda_manual(id_aluno, nome_aluno, horas, valor_total, metodo, data_venda):
+    """
+    Função para vendas manuais onde o valor é definido pelo usuário no formulário.
+    """
+    sh = conectar_planilha()
+    ws = sh.worksheet("MOV_Vendas")
+    
+    col = ws.col_values(1)
+    try: ult = int(col[-1]) if len(col) > 1 else 0
+    except: ult = len(col)
+    
+    # Salva na MOV_Vendas
+    ws.append_row([
+        ult + 1,
+        data_venda,
+        str(id_aluno),
+        nome_aluno,
+        f"Manual {horas}h",
+        str(horas).replace('.', ','),
+        str(valor_total).replace('.', ','),
+        metodo,
+        data_venda, # Assume pago na data da venda se for manual
+        "", 
+        "", 
+        "Pago"
+    ])
+    
+    atualizar_dash_dados()
+    return True, "Venda salva."
 
 def processar_primeira_aula(id_aluno, data_aula_dt):
     """
@@ -56,45 +111,38 @@ def processar_primeira_aula(id_aluno, data_aula_dt):
         
         if not all_values: return False, "Planilha vazia."
         
-        header = [h.strip().lower() for h in all_values[0]] # Cabeçalho minúsculo e sem espaços
+        header = [h.strip().lower() for h in all_values[0]]
         dados = all_values[1:]
         
-        # 1. Localizar índices das colunas (Independente de maiúscula/minúscula)
+        # 1. Localizar índices das colunas
         try:
-            # Procura coluna que contenha "id" e "aluno"
             idx_id = next(i for i, h in enumerate(header) if "id" in h and "aluno" in h)
-            
-            # Procura coluna que contenha "primeira" e "aula"
             idx_dt_prim = next(i for i, h in enumerate(header) if "primeira" in h and "aula" in h)
-            
-            # Procura coluna que contenha "vencimento"
             idx_venc = next(i for i, h in enumerate(header) if "vencimento" in h)
-            
-            print(f">>> [DEBUG VENDAS] Colunas encontradas: ID={idx_id}, Prim={idx_dt_prim}, Venc={idx_venc}")
+            print(f">>> [DEBUG VENDAS] Colunas: ID={idx_id}, Prim={idx_dt_prim}, Venc={idx_venc}")
         except StopIteration:
             print(">>> [ERRO VENDAS] Colunas não encontradas no cabeçalho.")
             return False, "Erro: Verifique os nomes das colunas na planilha MOV_Vendas."
 
-        # 2. Varrer de baixo para cima (última venda primeiro)
+        # 2. Varrer de baixo para cima
         id_busca = str(id_aluno).strip()
         
         for i in range(len(dados) - 1, -1, -1):
             row = dados[i]
             
-            # Limpa o ID da linha (tira .0 se vier do excel)
+            # Limpeza segura (evita crash se linha estiver incompleta)
+            if len(row) <= idx_id: continue
+            
             id_row = str(row[idx_id]).strip().replace(".0", "")
-            dt_prim_atual = str(row[idx_dt_prim]).strip()
+            dt_prim_atual = str(row[idx_dt_prim]).strip() if len(row) > idx_dt_prim else ""
             
             if id_row == id_busca:
-                # Se achou o aluno e a data está vazia
                 if dt_prim_atual == "":
                     print(f">>> [DEBUG VENDAS] Venda encontrada na linha {i+2}. Atualizando...")
                     
-                    # Cálculos
                     dt_inicio = data_aula_dt.strftime("%d/%m/%Y")
                     dt_fim = (data_aula_dt + timedelta(days=30)).strftime("%d/%m/%Y")
                     
-                    # Atualiza (row + 2 porque i começa em 0 e tem header)
                     ws.update_cell(i + 2, idx_dt_prim + 1, dt_inicio)
                     ws.update_cell(i + 2, idx_venc + 1, dt_fim)
                     
@@ -106,4 +154,3 @@ def processar_primeira_aula(id_aluno, data_aula_dt):
     except Exception as e:
         print(f">>> [ERRO CRÍTICO VENDAS]: {e}")
         return False, f"Erro sistema: {e}"
-    
