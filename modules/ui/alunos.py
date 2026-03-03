@@ -65,6 +65,7 @@ def form_novo_aluno():
             profs_selecionados = st.multiselect("Professores Preferenciais", options=opcoes_nomes_profs, placeholder="Selecione (opcional)")
             escola = st.text_input("Escola")
             endereco = st.text_input("Endereço")
+            bairro = st.text_input("Bairro")
         
         obs = st.text_area("Observações")
         
@@ -80,16 +81,22 @@ def form_novo_aluno():
         
         # Inicializa variáveis para não quebrar o código
         qtd_horas = 0
+        valor_pacote = 0.0
         data_contrato = date.today()
         pagou_agora = False
         data_pagamento = None
         
         if gerar_pacote:
-            c1, c2, c3 = st.columns(3)
+            c1, c2 = st.columns(2)
             qtd_horas = c1.number_input("Qtd Horas", min_value=1.0, step=0.5, format="%.1f")
-            data_contrato = c2.date_input("Data Contratação", format="DD/MM/YYYY")
-            pagou_agora = c3.checkbox("Já pagou?", value=True)
-            data_pagamento = st.date_input("Data Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou_agora else None
+            valor_pacote = c2.number_input("Valor do Pacote (R$)", min_value=0.0, step=10.0, format="%.2f")
+            
+            c3, c4, c5 = st.columns(3)
+            data_contrato = c3.date_input("Data Contratação", format="DD/MM/YYYY")
+            st.write("") 
+            st.write("") # Espaçamento para alinhar checkbox
+            pagou_agora = c4.checkbox("Já pagou?", value=True)
+            data_pagamento = c5.date_input("Data Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou_agora else None
         else:
             st.caption("ℹ️ O aluno será criado apenas com saldo zerado. Você poderá lançar pacotes depois na aba 'Vendas'.")
 
@@ -115,7 +122,7 @@ def form_novo_aluno():
                     nasc_str = nascimento.strftime("%d/%m/%Y") if nascimento else ""
                     
                     # 1. Salvar Aluno (SEMPRE)
-                    novo_id = db.cadastrar_aluno(nome, responsavel, telefone, nasc_str, serie, escola, endereco, obs)
+                    novo_id = db.cadastrar_aluno(nome, responsavel, telefone, nasc_str, serie, escola, endereco, bairro, obs)
                     
                     # 2. Salvar Vínculos (SEMPRE)
                     ids_vincular = [mapa_professores[p] for p in profs_selecionados]
@@ -127,7 +134,7 @@ def form_novo_aluno():
                         contrato_str = data_contrato.strftime("%d/%m/%Y")
                         pagamento_str = data_pagamento.strftime("%d/%m/%Y") if data_pagamento else ""
                         
-                        sucesso, msg = db.registrar_venda_automatica(novo_id, nome, qtd_horas, "Pix", contrato_str, pagamento_str)
+                        sucesso, msg = db.registrar_venda_automatica(novo_id, nome, qtd_horas, "Pix", contrato_str, pagamento_str, valor_manual=valor_pacote if valor_pacote > 0 else None)
                         
                         if sucesso:
                             core.notify_success(f"Aluno {nome} criado e pacote lançado!")

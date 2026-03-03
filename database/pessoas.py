@@ -3,7 +3,7 @@ from .connection import conectar_planilha
 from .utils import to_float, normalizar_id
 from .dashboards import atualizar_dash_dados
 
-def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, endereco, obs):
+def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, endereco, bairro, obs):
     sh = conectar_planilha()
     ws = sh.worksheet("CAD_Alunos")
     
@@ -16,7 +16,8 @@ def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, ende
     tel_final = f"55{apenas_numeros}" if apenas_numeros and not apenas_numeros.startswith('55') else (f"+{apenas_numeros}" if apenas_numeros else "")
     
     # OBS: O ID do aluno aqui já é int (proximo_id), então salva como número
-    ws.append_row([proximo_id, nome, responsavel, tel_final, nascimento, serie, escola, endereco, obs, "Ativo"])
+    # Ordem: ID, Nome, Responsável, Telefone, Nascimento, Série, Escola, Endereço, Observações, Status, Bairro
+    ws.append_row([proximo_id, nome, responsavel, tel_final, nascimento, serie, escola, endereco, obs, "Ativo", bairro])
     
     atualizar_dash_dados() 
     return proximo_id

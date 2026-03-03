@@ -42,17 +42,22 @@ def form_novo_aluno():
             
             escola = st.text_input("Escola")
             endereco = st.text_input("Endereço")
+            bairro = st.text_input("Bairro")
         
         obs = st.text_area("Observações")
         
         st.markdown("---")
         st.markdown("##### 📦 Primeiro Pacote")
-        c1, c2, c3 = st.columns(3)
+        c1, c2 = st.columns(2)
         qtd_horas = c1.number_input("Qtd Horas", min_value=1, step=1)
-        data_contrato = c2.date_input("Data Contratação", format="DD/MM/YYYY")
+        valor_pacote = c2.number_input("Valor do Pacote (R$)", min_value=0.0, step=10.0, format="%.2f")
         
-        pagou_agora = c3.checkbox("Já pagou?", value=True)
-        data_pagamento = st.date_input("Data Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou_agora else None
+        c3, c4, c5 = st.columns(3)
+        data_contrato = c3.date_input("Data Contratação", format="DD/MM/YYYY")
+        st.write("")
+        st.write("") # Espaçamento para alinhar checkbox
+        pagou_agora = c4.checkbox("Já pagou?", value=True)
+        data_pagamento = c5.date_input("Data Pagamento", value=date.today(), format="DD/MM/YYYY") if pagou_agora else None
         
         if st.form_submit_button("💾 Salvar Novo Aluno"):
             if not nome: st.error("Nome obrigatório"); return
@@ -63,14 +68,14 @@ def form_novo_aluno():
                 pagamento_str = data_pagamento.strftime("%d/%m/%Y") if data_pagamento else ""
                 
                 # 1. Cadastra
-                novo_id = db.cadastrar_aluno(nome, responsavel, telefone, nasc_str, serie, escola, endereco, obs)
+                novo_id = db.cadastrar_aluno(nome, responsavel, telefone, nasc_str, serie, escola, endereco, bairro, obs)
                 
                 # 2. Vincula
                 ids_vincular = [mapa_professores[p] for p in profs_selecionados]
                 db.salvar_vinculos_professor(novo_id, ids_vincular)
                 
                 # 3. Vende
-                sucesso, msg = db.registrar_venda_automatica(novo_id, nome, qtd_horas, "Pix", contrato_str, pagamento_str)
+                sucesso, msg = db.registrar_venda_automatica(novo_id, nome, qtd_horas, "Pix", contrato_str, pagamento_str, valor_manual=valor_pacote if valor_pacote > 0 else None)
                 
                 if sucesso:
                     st.success(f"Aluno {nome} criado! {msg}")

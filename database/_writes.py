@@ -145,7 +145,7 @@ def atualizar_status_aula(id_aula, novo_status):
         return False
     return False
 
-def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, endereco, obs):
+def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, endereco, bairro, obs):
     sh = conectar_planilha()
     ws = sh.worksheet("CAD_Alunos")
     proximo_id = len(ws.col_values(1))
@@ -161,7 +161,8 @@ def cadastrar_aluno(nome, responsavel, telefone, nascimento, serie, escola, ende
     apenas_numeros = re.sub(r'\D', '', str(telefone))
     telefone_final = f"55{apenas_numeros}" if apenas_numeros and not apenas_numeros.startswith('55') else (f"+{apenas_numeros}" if apenas_numeros else "")
     
-    nova_linha = [proximo_id, nome, responsavel, telefone_final, nascimento, serie, escola, endereco, obs, "Ativo"]
+    # Ordem: ID, Nome, Responsável, Telefone, Nascimento, Série, Escola, Endereço, Observações, Status, Bairro
+    nova_linha = [proximo_id, nome, responsavel, telefone_final, nascimento, serie, escola, endereco, obs, "Ativo", bairro]
     ws.append_row(nova_linha)
     
     # Não precisa atualizar dash aqui pois o aluno tem 0 horas, 

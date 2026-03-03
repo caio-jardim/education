@@ -86,45 +86,46 @@ def show_gestao_aulas():
             st.markdown("---")
             
             c1, c2, c3 = st.columns(3)
-            opcoes_alunos = list(mapa_alunos.keys())
-            opcoes_profs = list(mapa_profs.keys())
+            opcoes_alunos = ["-- Selecione um Aluno --"] + list(mapa_alunos.keys()) if mapa_alunos else ["Sem alunos"]
+            opcoes_profs = ["-- Selecione um Professor --"] + list(mapa_profs.keys()) if mapa_profs else ["Sem professores"]
             
-            aluno = c1.selectbox("Aluno", options=opcoes_alunos) if opcoes_alunos else c1.warning("Sem alunos")
-            prof = c2.selectbox("Professor", options=opcoes_profs) if opcoes_profs else c2.warning("Sem professores")
-            modalidade = c3.selectbox("Modalidade", ["Online", "Education", "Casa"])
+            aluno = c1.selectbox("Aluno", options=opcoes_alunos) if mapa_alunos else c1.warning("Sem alunos")
+            prof = c2.selectbox("Professor", options=opcoes_profs) if mapa_profs else c2.warning("Sem professores")
+            modalidade = c3.selectbox("Modalidade", ["-- Selecione --", "Online", "Education", "Casa"])
             
             c4, c5, c6 = st.columns(3)
-            data_inicio = c4.date_input("Data", value=date.today(), format="DD/MM/YYYY")
+            data_inicio = c4.date_input("Data", value=None, format="DD/MM/YYYY")
             
-            lista_horarios = []
+            lista_horarios = ["-- Selecione --"]
             for h in range(7, 23):
                 lista_horarios.append(f"{h:02d}:00")
                 if h < 23: lista_horarios.append(f"{h:02d}:30")
             if "23:00" in lista_horarios: lista_horarios.remove("23:00")
             if "23:30" in lista_horarios: lista_horarios.remove("23:30")
-            idx_padrao = lista_horarios.index("09:00") if "09:00" in lista_horarios else 0
             
-            hora_selecionada_str = c5.selectbox("Horário", options=lista_horarios, index=idx_padrao)
-            h_sel, m_sel = map(int, hora_selecionada_str.split(':'))
-            hora_inicio = time(h_sel, m_sel) 
-
-            duracao = c6.number_input("Duração (h)", value=1.0, step=0.5)
+            hora_selecionada_str = c5.selectbox("Horário", options=lista_horarios, index=0)
+            
+            duracao = c6.number_input("Duração (h)", value=None, step=0.5, min_value=0.5)
             
             st.markdown("###### 🔁 Repetição")
             col_rep, col_qtd = st.columns([2, 1])
-            tipo_rep = col_rep.selectbox("Frequência", ["Uma única vez", "Diariamente", "Semanalmente", "Mensalmente"], index=0)
+            tipo_rep = col_rep.selectbox("Frequência", ["-- Selecione --", "Uma única vez", "Diariamente", "Semanalmente", "Mensalmente"], index=0)
             
             qtd_repeticoes = 1
-            if tipo_rep != "Uma única vez":
+            if tipo_rep != "-- Selecione --" and tipo_rep != "Uma única vez":
                 qtd_repeticoes = col_qtd.number_input("Repetir por quantas vezes?", min_value=2, value=4, step=1)
 
-            datas_geradas = [data_inicio]
-            if tipo_rep != "Uma única vez":
+            datas_geradas = [data_inicio] if data_inicio else []
+            if tipo_rep != "-- Selecione --" and tipo_rep != "Uma única vez" and data_inicio and hora_selecionada_str != "-- Selecione --":
                 freq_map = {"Diariamente": DAILY, "Semanalmente": WEEKLY, "Mensalmente": MONTHLY}
                 try:
+                    h_sel, m_sel = map(int, hora_selecionada_str.split(':'))
+                    hora_inicio = time(h_sel, m_sel)
                     datas_geradas = list(rrule(freq=freq_map[tipo_rep], dtstart=datetime.combine(data_inicio, hora_inicio), count=qtd_repeticoes))
                     datas_geradas = [d.date() for d in datas_geradas]
                 except Exception as e: st.error(f"Erro datas: {e}")
+            elif tipo_rep == "Uma única vez" and data_inicio and hora_selecionada_str != "-- Selecione --":
+                datas_geradas = [data_inicio]
 
             if len(datas_geradas) > 1:
                 st.caption(f"ℹ️ Serão criados **{len(datas_geradas)} registros** com status **'{status_automatico}'**.")
@@ -140,8 +141,12 @@ def show_gestao_aulas():
                 cancelar = st.form_submit_button("Cancelar", type="secondary")
             
             if confirmar and not btn_disabled:
-                if not aluno or not prof:
-                    core.notify_warning("Selecione Aluno e Professor.")
+                if not aluno or not prof or aluno.startswith("--") or prof.startswith("--") or modalidade.startswith("--"):
+                    core.notify_warning("⚠️ Selecione Aluno, Professor e Modalidade antes de salvar.")
+                elif not data_inicio or hora_selecionada_str.startswith("--") or duracao is None or duracao == 0 or tipo_rep.startswith("--"):
+                    core.notify_warning("⚠️ Preencha Data, Horário, Duração e Frequência antes de salvar.")
+                elif not datas_geradas:
+                    core.notify_warning("⚠️ Ocorreu um erro ao processar as datas. Verifique os valores.")
                 else:
                     try:
                         id_a = mapa_alunos[aluno]
@@ -187,9 +192,9 @@ def show_gestao_aulas():
             
             if cancelar: st.rerun()
 
-    # --- TAB 3: HISTÓRICO (FILTRO MENSAL ADICIONADO) ---
+    # --- TAB 3: HISTÓRICO (FILTROS: MÊS, PROFESSOR, ALUNO) ---
     with tab_lista:
-        st.markdown("##### 📜 Histórico por Mês")
+        st.markdown("##### 📜 Histórico de Aulas")
         
         if not df_aulas.empty:
             # 1. Copia para não afetar o cache original
@@ -206,16 +211,33 @@ def show_gestao_aulas():
             
             df_hist['Mes_Filtro'] = df_hist['Data_Dt'].apply(lambda x: f"{meses_pt[x.month]}/{x.year}")
             
-            # 4. Selectbox de Filtro
-            opcoes_meses = df_hist['Mes_Filtro'].unique().tolist()
+            # 4. Prepara Opções de Filtro
+            opcoes_meses = sorted(df_hist['Mes_Filtro'].unique().tolist(), reverse=True)
+            opcoes_profs = ['📋 Todos os Professores'] + sorted([p for p in df_hist['Nome Professor'].unique().tolist() if pd.notna(p)])
+            opcoes_alunos = ['📋 Todos os Alunos'] + sorted([a for a in df_hist['Nome Aluno'].unique().tolist() if pd.notna(a)])
             
-            c_filtro, c_vazio = st.columns([2, 4])
-            mes_selecionado = c_filtro.selectbox("Selecione o Mês:", options=opcoes_meses)
+            # 5. Cria Layout de Filtros em 3 Colunas
+            c_mes, c_prof, c_aluno = st.columns(3)
             
-            # 5. Filtra Dados
-            df_exibicao = df_hist[df_hist['Mes_Filtro'] == mes_selecionado]
+            with c_mes:
+                mes_selecionado = st.selectbox("📅 Mês:", options=opcoes_meses, key="filtro_mes_historico")
             
-            # 6. Exibe Tabela Limpa (Remove colunas auxiliares)
+            with c_prof:
+                prof_selecionado = st.selectbox("👨‍🏫 Professor:", options=opcoes_profs, key="filtro_prof_historico")
+            
+            with c_aluno:
+                aluno_selecionado = st.selectbox("📚 Aluno:", options=opcoes_alunos, key="filtro_aluno_historico")
+            
+            # 6. Filtra Dados baseado nos Selectbox
+            df_exibicao = df_hist[df_hist['Mes_Filtro'] == mes_selecionado].copy()
+            
+            if not prof_selecionado.startswith('📋'):
+                df_exibicao = df_exibicao[df_exibicao['Nome Professor'] == prof_selecionado]
+            
+            if not aluno_selecionado.startswith('📋'):
+                df_exibicao = df_exibicao[df_exibicao['Nome Aluno'] == aluno_selecionado]
+            
+            # 7. Exibe Tabela Limpa (Remove colunas auxiliares)
             cols_ocultar = ['Data_Dt', 'Mes_Filtro', 'key']
             st.dataframe(
                 df_exibicao.drop(columns=[c for c in cols_ocultar if c in df_exibicao.columns]), 
@@ -223,7 +245,21 @@ def show_gestao_aulas():
                 hide_index=True
             )
             
-            st.caption(f"Total de {len(df_exibicao)} aulas em {mes_selecionado}.")
+            # 8. Rodapé com Informações
+            st.divider()
+            col_info, col_vazio = st.columns([3, 2])
+            
+            with col_info:
+                info_text = f"📊 **{len(df_exibicao)}** aulas"
+                info_text += f" em {mes_selecionado}"
+                
+                if not prof_selecionado.startswith('📋'):
+                    info_text += f" • Prof. {prof_selecionado}"
+                
+                if not aluno_selecionado.startswith('📋'):
+                    info_text += f" • Aluno {aluno_selecionado}"
+                
+                st.caption(info_text)
             
         else:
             st.info("Nenhuma aula registrada no sistema.")
