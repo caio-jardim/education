@@ -237,7 +237,19 @@ def show_gestao_aulas():
             if not aluno_selecionado.startswith('📋'):
                 df_exibicao = df_exibicao[df_exibicao['Nome Aluno'] == aluno_selecionado]
             
-            # 7. Exibe Tabela Limpa (Remove colunas auxiliares)
+            # 7. Formata Comissão no padrão brasileiro
+            def _fmt_comissao(v):
+                try:
+                    s = str(v).replace('R$', '').replace('.', '').replace(',', '.').strip()
+                    n = float(s) if s else 0.0
+                    return f"R$ {n:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                except:
+                    return v
+
+            if 'Comissão' in df_exibicao.columns:
+                df_exibicao['Comissão'] = df_exibicao['Comissão'].apply(_fmt_comissao)
+
+            # 8. Exibe Tabela Limpa (Remove colunas auxiliares)
             cols_ocultar = ['Data_Dt', 'Mes_Filtro', 'key']
             st.dataframe(
                 df_exibicao.drop(columns=[c for c in cols_ocultar if c in df_exibicao.columns]), 

@@ -37,7 +37,12 @@ def get_pacotes():
 def get_aulas():
     try:
         ws = conectar_planilha().worksheet("MOV_Aulas")
-        return pd.DataFrame(ws.get_all_records())
+        all_data = ws.get_all_values()
+        if not all_data or len(all_data) < 2:
+            return pd.DataFrame()
+        headers = all_data[0]
+        rows = all_data[1:]
+        return pd.DataFrame(rows, columns=headers)
     except: return pd.DataFrame()
 
 def get_vinculos():
