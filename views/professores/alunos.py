@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import database as db
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from modules.ui.core import header_page, kpi_card
 
 def show_page_alunos(id_prof_logado, nome_prof):
@@ -33,6 +34,35 @@ def show_page_alunos(id_prof_logado, nome_prof):
         # --- 3. LÓGICA DE COMISSÃO ---
         comissao_mes = 0.00
         
+        # --- FILTRO DE MÊS (Novo) ---
+        st.markdown("### 📊 Análise de Comissão")
+        
+        # Gera lista de meses a partir de janeiro de 2026 até o mês atual
+        hoje = datetime.now()
+        inicio = datetime(2026, 1, 1)
+        meses_disponiveis = []
+        
+        # Calcula quantos meses há entre janeiro/2026 e hoje
+        meses_total = (hoje.year - inicio.year) * 12 + (hoje.month - inicio.month) + 1
+        
+        for i in range(meses_total):
+            data_filtro = inicio + relativedelta(months=i)
+            # Formato mais legível
+            mes_ano_display = data_filtro.strftime("%B de %Y").replace("January", "Janeiro").replace("February", "Fevereiro").replace("March", "Março").replace("April", "Abril").replace("May", "Maio").replace("June", "Junho").replace("July", "Julho").replace("August", "Agosto").replace("September", "Setembro").replace("October", "Outubro").replace("November", "Novembro").replace("December", "Dezembro")
+            meses_disponiveis.append((mes_ano_display, data_filtro))
+        
+        # Selectbox com opção de escolher o mês
+        col_mes, col_vazio = st.columns([2, 4])
+        with col_mes:
+            mes_selecionado_display = st.selectbox(
+                "Selecione o mês para consultar comissão:",
+                options=[m[0] for m in meses_disponiveis],
+                index=len(meses_disponiveis) - 1  # Por padrão, seleciona o mês atual
+            )
+        
+        # Encontra o objeto datetime correspondente ao mês selecionado
+        mes_escolhido = next((m[1] for m in meses_disponiveis if m[0] == mes_selecionado_display), hoje)
+        
         if not df_aulas.empty:
             # Filtra pelo Professor Logado
             col_id_prof_aula = next((c for c in df_aulas.columns if 'id' in c.lower() and 'prof' in c.lower()), None)
@@ -46,11 +76,10 @@ def show_page_alunos(id_prof_logado, nome_prof):
                     if 'Data' in minhas_aulas.columns:
                         minhas_aulas['Data_Dt'] = pd.to_datetime(minhas_aulas['Data'], format="%d/%m/%Y", errors='coerce')
                         
-                        # Filtra Mês e Ano Atual
-                        hoje = datetime.now()
+                        # Filtra Mês e Ano Selecionados (ao invés de usar "hoje")
                         aulas_mes = minhas_aulas[
-                            (minhas_aulas['Data_Dt'].dt.month == hoje.month) & 
-                            (minhas_aulas['Data_Dt'].dt.year == hoje.year)
+                            (minhas_aulas['Data_Dt'].dt.month == mes_escolhido.month) & 
+                            (minhas_aulas['Data_Dt'].dt.year == mes_escolhido.year)
                         ]
                         
                         # Calcula a soma da comissão
