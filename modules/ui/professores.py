@@ -241,7 +241,11 @@ def show_gestao_vinculos():
 
     # 5. Cards de Métricas
     def _fmt_brl(valor):
-        formatted = f"{valor:,.2f}"
+        try:
+            valor_num = float(valor) if isinstance(valor, str) else float(valor)
+        except (ValueError, TypeError):
+            valor_num = 0.0
+        formatted = f"{valor_num:,.2f}"
         return "R$ " + formatted.replace(',', 'X').replace('.', ',').replace('X', '.')
 
     st.markdown("")

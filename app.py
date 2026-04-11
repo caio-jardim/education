@@ -1,6 +1,9 @@
 import streamlit as st
 from streamlit_option_menu import option_menu
 from modules.ui.core import load_css 
+import json
+import os
+from pathlib import Path
 
 # --- IMPORTAÇÃO UNIFICADA (A Grande Mudança) ---
 # Agora importamos as funções principais direto do pacote views
@@ -18,12 +21,54 @@ st.set_page_config(
 # Injeta o CSS (Fundo Off-White, Fontes, Cards, Sidebar Preta)
 load_css()
 
-# --- 3. GESTÃO DE SESSÃO ---
+# --- 3. GESTÃO DE SESSÃO PERSISTIDA (COM ARQUIVO LOCAL + LOCALSTORAGE) ---
+SESSION_FILE = ".streamlit/session_cache.json"
+
+def salvar_sessao():
+    """Salva a sessão atual em um arquivo local"""
+    if st.session_state.get('logado') and st.session_state.get('usuario'):
+        try:
+            os.makedirs(".streamlit", exist_ok=True)
+            with open(SESSION_FILE, 'w') as f:
+                json.dump(st.session_state['usuario'], f, default=str)
+        except:
+            pass
+
+def carregar_sessao():
+    """Carrega a sessão de um arquivo local"""
+    try:
+        if os.path.exists(SESSION_FILE):
+            with open(SESSION_FILE, 'r') as f:
+                usuario = json.load(f)
+                return usuario
+    except:
+        pass
+    return None
+
+def limpar_sessao():
+    """Limpa a sessão (arquivo + localStorage)"""
+    try:
+        if os.path.exists(SESSION_FILE):
+            os.remove(SESSION_FILE)
+    except:
+        pass
+
+# --- 4. INICIALIZAÇÃO DA SESSÃO ---
 if 'logado' not in st.session_state:
     st.session_state['logado'] = False
     st.session_state['usuario'] = None
+    
+    # Tenta carregar sessão do arquivo
+    usuario_salvo = carregar_sessao()
+    if usuario_salvo:
+        st.session_state['logado'] = True
+        st.session_state['usuario'] = usuario_salvo
 
-# --- 4. ROTEAMENTO PRINCIPAL ---
+# Salva a sessão periodicamente se logado
+if st.session_state.get('logado'):
+    salvar_sessao()
+
+# --- 5. ROTEAMENTO PRINCIPAL ---
 if not st.session_state['logado']:
     # Tela de Login (Limpa, sem sidebar)
     show_login()
@@ -101,6 +146,8 @@ else:
 
         # Botão de Sair
         if st.button("Sair do Sistema", use_container_width=True):
+            # Limpa a sessão
+            limpar_sessao()
             st.session_state['logado'] = False
             st.session_state['usuario'] = None
             st.rerun()

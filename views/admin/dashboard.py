@@ -15,7 +15,13 @@ def formatar_valor_dinamico(valor):
     """
     Formata o valor em R$ e ajusta o HTML para não quebrar o layout.
     """
-    texto = f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    # Converte para float caso seja string
+    try:
+        valor_num = float(valor) if isinstance(valor, str) else float(valor)
+    except (ValueError, TypeError):
+        valor_num = 0.0
+    
+    texto = f"R$ {valor_num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
     # AJUSTE DE LAYOUT:
     # 1. font-size: 22px (Menor que o padrão 28px dos outros cards para caber números grandes)

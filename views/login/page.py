@@ -68,8 +68,10 @@ def show_login():
                         msg_placeholder = st.empty()
                         msg_placeholder.success("Login realizado com sucesso!")
                         
+                        usuario_dict = usuario_encontrado.iloc[0].to_dict()
+                        
                         st.session_state['logado'] = True
-                        st.session_state['usuario'] = usuario_encontrado.iloc[0].to_dict()
+                        st.session_state['usuario'] = usuario_dict
                         
                         time.sleep(1) # Pausa dramática elegante
                         st.rerun()

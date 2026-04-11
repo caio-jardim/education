@@ -18,6 +18,7 @@ header[data-testid="stHeader"] {
     visibility: visible !important;
     background-color: transparent !important;
     z-index: 999999 !important;
+    padding-top: 40px !important;
 }
 header[data-testid="stHeader"] > div:first-child {
     background: transparent !important;
@@ -41,6 +42,13 @@ header[data-testid="stHeader"] > div:first-child {
     padding-top: 1rem !important;
     padding-bottom: 0rem !important;
     margin-top: 0px !important;
+}
+
+/* Mobile: abaixar títulos principais quando header foi baixado */
+@media (max-width: 768px) {
+    .block-container {
+        margin-top: 40px !important;
+    }
 }
 
 /* 4. SIDEBAR (Limites) */
@@ -68,6 +76,13 @@ div[data-testid="stSidebarNav"] {
 [data-testid="stHeader"] button svg {
     fill: #C5A065 !important;
     stroke: #C5A065 !important;
+}
+
+/* Mobile: abaixar o botão do menu */
+@media (max-width: 768px) {
+    header[data-testid="stHeader"] {
+        padding-top: 60px !important;
+    }
 }
 
 /* ==========================================================================
