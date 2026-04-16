@@ -4,8 +4,6 @@ from modules.ui.core import load_css
 import json
 import os
 from pathlib import Path
-import time
-from datetime import datetime, timedelta
 
 # --- IMPORTAÇÃO UNIFICADA (A Grande Mudança) ---
 # Agora importamos as funções principais direto do pacote views
@@ -23,89 +21,16 @@ st.set_page_config(
 # Injeta o CSS (Fundo Off-White, Fontes, Cards, Sidebar Preta)
 load_css()
 
-# --- 3. GESTÃO DE SESSÃO PERSISTIDA (COM EXPIRAÇÃO DE 24H) ---
-SESSION_FILE = ".streamlit/session_cache.json"
-SESSION_EXPIRATION_HOURS = 24  # Cache expira após 24 horas
-
-def salvar_sessao():
-    """Salva a sessão atual em um arquivo local com timestamp
-    Garante que limpa qualquer cache antigo antes de salvar o novo login"""
-    if st.session_state.get('logado') and st.session_state.get('usuario'):
-        try:
-            os.makedirs(".streamlit", exist_ok=True)
-            
-            # PASSO 1: Limpa arquivos antigos para evitar conflitos
-            try:
-                if os.path.exists(SESSION_FILE):
-                    os.remove(SESSION_FILE)
-            except:
-                pass
-            
-            # PASSO 2: Salva o novo login com timestamp
-            sessao_com_timestamp = {
-                'usuario': st.session_state['usuario'],
-                'timestamp': datetime.now().isoformat(),
-                'username': str(st.session_state['usuario'].get('Username', '')).strip()  # ID único
-            }
-            with open(SESSION_FILE, 'w') as f:
-                json.dump(sessao_com_timestamp, f, default=str, indent=2)
-        except Exception as e:
-            pass
-
-def carregar_sessao():
-    """Carrega a sessão de um arquivo local verificando expiração (24h)
-    Carrega APENAS o último login"""
-    try:
-        if os.path.exists(SESSION_FILE):
-            with open(SESSION_FILE, 'r') as f:
-                dados = json.load(f)
-                
-                # Extrai timestamp e usuário
-                timestamp_str = dados.get('timestamp')
-                usuario = dados.get('usuario')
-                username = dados.get('username', '')
-                
-                if timestamp_str and usuario and username:
-                    # Converte string ISO para datetime
-                    timestamp_sessao = datetime.fromisoformat(timestamp_str)
-                    agora = datetime.now()
-                    
-                    # Calcula diferença
-                    idade_sessao = agora - timestamp_sessao
-                    
-                    # Verifica se expirou (24 horas = 86400 segundos)
-                    if idade_sessao.total_seconds() < (SESSION_EXPIRATION_HOURS * 3600):
-                        return usuario
-                    else:
-                        # Sessão expirada, remove o arquivo
-                        limpar_sessao()
-                        return None
-    except Exception as e:
-        pass
-    return None
-
+# --- 3. GESTÃO DE SESSÃO (SEM CACHE PERSISTIDO) ---
 def limpar_sessao():
-    """Limpa a sessão (arquivo + localStorage)"""
-    try:
-        if os.path.exists(SESSION_FILE):
-            os.remove(SESSION_FILE)
-    except:
-        pass
+    """Limpa completamente a sessão"""
+    st.session_state['logado'] = False
+    st.session_state['usuario'] = None
 
 # --- 4. INICIALIZAÇÃO DA SESSÃO ---
 if 'logado' not in st.session_state:
     st.session_state['logado'] = False
     st.session_state['usuario'] = None
-    
-    # Tenta carregar sessão do arquivo
-    usuario_salvo = carregar_sessao()
-    if usuario_salvo:
-        st.session_state['logado'] = True
-        st.session_state['usuario'] = usuario_salvo
-
-# Salva a sessão periodicamente se logado
-if st.session_state.get('logado'):
-    salvar_sessao()
 
 # --- 5. ROTEAMENTO PRINCIPAL ---
 if not st.session_state['logado']:
